@@ -32,20 +32,90 @@ unsigned long hashFunction(char *word, int size) {
 }
 
 // Function to print Hash Table for debugging purpose.
-void printHashTable(openHashTable* hashTable) {
-    for (int i = 0; i < hashTable->size; i++) {
+void printHashTable(openHashTable* hashTable) 
+{
+    for (int i = 0; i < hashTable->size; i++) 
+    {
         Node* current = hashTable->buckets[i];
-        if (current != NULL) {
+
+        if (current != NULL)
+        {
             printf("Bucket %d: ", i);
-            while (current != NULL) {
+            while (current != NULL) 
+            {
                 printf("%s -> ", current->word);
                 current = current->next;
             }
             printf("NULL\n");
-        } else {
+        } else 
+        {
             printf("Bucket %d: NULL\n", i);
         }
     }
+}
+
+
+// Function to insert the dictionary words to hash table
+void insertToHashTable(openHashTable* hashTable, char* wrd)
+{
+    // Let's get the hash value of the word first.
+    unsigned long hashValue = hashFunction(wrd, hashTable->size);
+    printf("Hash value: %lu\n", hashValue);
+    
+    Node* head = hashTable->buckets[hashValue];
+
+    if (head == NULL)
+    {
+        head = malloc(sizeof(Node));
+        head->word = malloc(strlen(wrd) + 1);
+        strcpy(head->word, wrd);
+        head->next = NULL;
+        hashTable->buckets[hashValue] = head;
+    } else
+    {
+        Node* current = head;
+        Node* previous = NULL;
+        bool found = false;
+
+        while (current != NULL)
+        {
+            if (strcmp(current->word, wrd) == 0)
+            {
+                found = true;
+                break;
+            }
+            previous = current;
+            current = current->next;   
+        }
+        
+        if (found == false)
+        {
+            Node* newNode = malloc(sizeof(Node));
+            newNode -> word = malloc(strlen(wrd) + 1);
+            strcpy(newNode->word, wrd);
+            newNode -> next = NULL;
+
+            previous -> next = newNode;
+        }
+        
+    }
+}
+
+
+// Function to free the hash table
+void freeHashTable(openHashTable* hashTable) {
+    for (int i = 0; i < hashTable->size; i++) {
+        Node* current = hashTable->buckets[i];
+
+        while (current != NULL) {
+            Node* temp = current;
+            current = current->next;
+            free(temp->word);
+            free(temp);
+        }
+    }
+    free(hashTable->buckets);
+    free(hashTable);
 }
 
 
@@ -107,48 +177,7 @@ int main(int argc, char **argv)
         printf("%d: %s\n",i,wrd);
         
         //HINT: here is a good place to insert the words into your hash table
-
-        // Let's get the hash value of the word first.
-        unsigned long hashValue = hashFunction(wrd, newOpenHashTable->size);
-        printf("Hash value: %lu\n", hashValue);
-
-        Node* head = newOpenHashTable->buckets[hashValue];
-
-        if (head == NULL)
-        {
-            head = malloc(sizeof(Node));
-            head->word = malloc(strlen(wrd) + 1);
-            strcpy(head->word, wrd);
-            head->next = NULL;
-            newOpenHashTable->buckets[hashValue] = head;
-        } else
-        {
-            Node* current = head;
-            Node* previous = NULL;
-            bool found = false;
-
-            while (current != NULL)
-            {
-                if (strcmp(current->word, wrd) == 0)
-                {
-                    found = true;
-                    break;
-                }
-                previous = current;
-                current = current->next;   
-            }
-            
-            if (found == false)
-            {
-                Node* newNode = malloc(sizeof(Node));
-                newNode -> word = malloc(strlen(wrd) + 1);
-                strcpy(newNode->word, wrd);
-                newNode -> next = NULL;
-
-                previous -> next = newNode;
-            }
-            
-        }
+        insertToHashTable(newOpenHashTable, wrd);
     }
     fclose(fp);
 
@@ -208,6 +237,7 @@ int main(int argc, char **argv)
     
 
     // DON'T FORGET to free the memory that you allocated
+    freeHashTable(newOpenHashTable);
     
 	return 0;
 }
