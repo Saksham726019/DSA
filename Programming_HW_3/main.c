@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdbool.h>
 
 // Added this header for ssize_t
 #include <unistd.h>
@@ -22,13 +22,30 @@ typedef struct openHashTable
 
 
 // Hash function to compute hash value for a given word on the ASCII value of its characters.
-unsigned long hash(char *word, int size) {
+unsigned long hashFunction(char *word, int size) {
     unsigned long total = 0;                        // Initialize the total to 0
     for (int i = 0; i < strlen(word); i++) {
         total = total + word[i];                    // Add the ASCII value of the character to total
         total = total * 101;                        // Multiply the total by 101 (a prime number)
     }
     return total % size;                            // Return the hash value constrained by the size
+}
+
+// Function to print Hash Table for debugging purpose.
+void printHashTable(openHashTable* hashTable) {
+    for (int i = 0; i < hashTable->size; i++) {
+        Node* current = hashTable->buckets[i];
+        if (current != NULL) {
+            printf("Bucket %d: ", i);
+            while (current != NULL) {
+                printf("%s -> ", current->word);
+                current = current->next;
+            }
+            printf("NULL\n");
+        } else {
+            printf("Bucket %d: NULL\n", i);
+        }
+    }
 }
 
 
@@ -70,8 +87,13 @@ int main(int argc, char **argv)
     
     //HINT: You can initialize your hash table here, since you know the size of the dictionary
     openHashTable* newOpenHashTable = malloc(sizeof(openHashTable));
-    newOpenHashTable->buckets = malloc(sizeof(Node) * numOfWords);
+    newOpenHashTable->buckets = malloc(sizeof(Node*) * numOfWords);
     newOpenHashTable->size = numOfWords;
+
+    for (int i = 0; i < newOpenHashTable -> size; i++)
+    {
+        newOpenHashTable->buckets[i] = NULL;
+    }
     
     //rewind file pointer to the beginning of the file, to be able to read it line by line.
     fseek(fp, 0, SEEK_SET);
@@ -86,8 +108,52 @@ int main(int argc, char **argv)
         
         //HINT: here is a good place to insert the words into your hash table
 
+        // Let's get the hash value of the word first.
+        unsigned long hashValue = hashFunction(wrd, newOpenHashTable->size);
+        printf("Hash value: %lu\n", hashValue);
+
+        Node* head = newOpenHashTable->buckets[hashValue];
+
+        if (head == NULL)
+        {
+            head = malloc(sizeof(Node));
+            head->word = malloc(strlen(wrd) + 1);
+            strcpy(head->word, wrd);
+            head->next = NULL;
+            newOpenHashTable->buckets[hashValue] = head;
+        } else
+        {
+            Node* current = head;
+            Node* previous = NULL;
+            bool found = false;
+
+            while (current != NULL)
+            {
+                if (strcmp(current->word, wrd) == 0)
+                {
+                    found = true;
+                    break;
+                }
+                previous = current;
+                current = current->next;   
+            }
+            
+            if (found == false)
+            {
+                Node* newNode = malloc(sizeof(Node));
+                newNode -> word = malloc(strlen(wrd) + 1);
+                strcpy(newNode->word, wrd);
+                newNode -> next = NULL;
+
+                previous -> next = newNode;
+            }
+            
+        }
     }
     fclose(fp);
+
+    printf("\nPrinting out the Hash Table:\n");
+    printHashTable(newOpenHashTable);
     
 	////////////////////////////////////////////////////////////////////
 	//read the input text file word by word
