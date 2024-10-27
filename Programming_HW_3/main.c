@@ -141,7 +141,6 @@ void printSuggestions(openHashTable* hashTable, char* word)
     for (int i = 0; i < strlen(word) - 1; i++)
     {
         swap(&word[i], &word[i+1]);   // Swap the adjacent pair
-        unsigned long hashValue = hashFunction(word, hashTable->size);  // Get the hash value after swapping the adjacent pair
         bool misspelled = isMisspelled(hashTable, word);    // Check if the word is in the dictionary
 
         if (misspelled == false)
@@ -151,12 +150,11 @@ void printSuggestions(openHashTable* hashTable, char* word)
             {
                 capacity *= 2;
                 suggestions = realloc(suggestions, sizeof(char*) * capacity);
-            } else
-            {
-                suggestions[size] = malloc(strlen(word) + 1);
-                strcpy(suggestions[size], word);
-                size++;
             }
+
+            suggestions[size] = malloc(strlen(word) + 1);
+            strcpy(suggestions[size], word);
+            size++;
         }
 
         swap(&word[i], &word[i+1]);     // swap the same pair again to change the word back to how it was originally        
@@ -167,6 +165,13 @@ void printSuggestions(openHashTable* hashTable, char* word)
     {
         printf("%s ", suggestions[i]);
     }
+
+    // Time to free the sugesstions array.
+    for (int i = 0; i < size; i++)
+    {
+        free(suggestions[i]);
+    }
+    free(suggestions);    
 }
 
 // Function to free the hash table
