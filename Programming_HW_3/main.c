@@ -102,6 +102,27 @@ void insertToHashTable(openHashTable* hashTable, char* wrd)
 }
 
 
+// Function to check for misspelled words
+bool isMisspelled(openHashTable* hashTable, char* word)
+{
+    // Let's get the hash value of the input word.
+    unsigned long hashValue = hashFunction(word, hashTable->size);
+
+    Node* current = hashTable->buckets[hashValue];
+
+    while (current != NULL)
+    {
+        if (strcmp(current->word, word) == 0)
+        {
+            return false;
+        }
+        current = current -> next;
+    }
+    
+    return true;
+}
+
+
 // Function to free the hash table
 void freeHashTable(openHashTable* hashTable) {
     for (int i = 0; i < hashTable->size; i++) {
@@ -197,7 +218,7 @@ int main(int argc, char **argv)
 
     //HINT: You can use a flag to indicate if there is a misspleed word or not, which is initially set to 1
 	int noTypo=1;
-
+    printf("\nThe words in input file:\n");
 	//read a line from the input file
 	while((lineSize = getline(&line,&lineBuffSize,fp)) !=-1)
 	{
@@ -212,11 +233,17 @@ int main(int argc, char **argv)
 		while(word!=NULL)
 		{
             // You can print the words of the inpit file for Debug purposes, just to make sure you are loading the input text as intended
-			//printf("%s\n",word);
+			printf("%s\n",word);
 
             
             // HINT: Since this nested while loop will keep reading the input text word by word, here is a good place to check for misspelled words
-            
+            bool misspelled = isMisspelled(newOpenHashTable, word);
+
+            if (misspelled == true)
+            {
+                noTypo = 0;
+                printf("Misspelled word: %s\n",word);
+            }
             
             // INPUT/OUTPUT SPECS: use the following line for printing a "word" that is misspelled.
             //printf("Misspelled word: %s\n",word);
