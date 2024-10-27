@@ -123,6 +123,52 @@ bool isMisspelled(openHashTable* hashTable, char* word)
 }
 
 
+void swap(char *a, char *b)
+{
+    char temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void printSuggestions(openHashTable* hashTable, char* word)
+{
+    // Initialize an array to store suggestions
+    int capacity = 3;
+    int size = 0;
+    char** suggestions = malloc(sizeof(char*) * capacity);
+
+    // Step 1: Inverted adjacent pairs
+    for (int i = 0; i < strlen(word) - 1; i++)
+    {
+        swap(&word[i], &word[i+1]);   // Swap the adjacent pair
+        unsigned long hashValue = hashFunction(word, hashTable->size);  // Get the hash value after swapping the adjacent pair
+        bool misspelled = isMisspelled(hashTable, word);    // Check if the word is in the dictionary
+
+        if (misspelled == false)
+        {
+            // Double the capacity if the array is full
+            if (size >= capacity)
+            {
+                capacity *= 2;
+                suggestions = realloc(suggestions, sizeof(char*) * capacity);
+            } else
+            {
+                suggestions[size] = malloc(strlen(word) + 1);
+                strcpy(suggestions[size], word);
+                size++;
+            }
+        }
+
+        swap(&word[i], &word[i+1]);     // swap the same pair again to change the word back to how it was originally        
+    }
+
+    printf("Suggestions: ");
+    for (int i = 0; i < size; i++)
+    {
+        printf("%s ", suggestions[i]);
+    }
+}
+
 // Function to free the hash table
 void freeHashTable(openHashTable* hashTable) {
     for (int i = 0; i < hashTable->size; i++) {
@@ -243,15 +289,9 @@ int main(int argc, char **argv)
             {
                 noTypo = 0;
                 printf("Misspelled word: %s\n",word);
+                printSuggestions(newOpenHashTable, word);
+                printf("\n");
             }
-            
-            // INPUT/OUTPUT SPECS: use the following line for printing a "word" that is misspelled.
-            //printf("Misspelled word: %s\n",word);
-            
-            // INPUT/OUTPUT SPECS: use the following line for printing suggestions, each of which will be separated by a comma and whitespace.
-            //printf("Suggestions: "); //the suggested words should follow
-            
-            
             
 			word = strtok(NULL,delimiter); 
 		}
