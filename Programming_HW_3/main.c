@@ -60,8 +60,7 @@ void insertToHashTable(openHashTable* hashTable, char* wrd)
 {
     // Let's get the hash value of the word first.
     unsigned long hashValue = hashFunction(wrd, hashTable->size);
-    printf("Hash value: %lu\n", hashValue);
-    
+
     Node* head = hashTable->buckets[hashValue];
 
     if (head == NULL)
@@ -130,20 +129,43 @@ void swap(char *a, char *b)
     *b = temp;
 }
 
+void shiftRight(char* word)
+{
+    for (int i = strlen(word); i > 0; i--)
+    {
+        word[i] = word[i-1];
+    }
+}
+
+void shiftLeft(char* word)
+{
+    for (int i = 1; i < strlen(word); i++)
+    {
+        word[i-1] = word[i];
+    }
+    word[strlen(word) - 1] = '\0';
+}
+
 void printSuggestions(openHashTable* hashTable, char* word)
 {
     // Initialize an array to store suggestions
     int capacity = 3;
     int size = 0;
     char** suggestions = malloc(sizeof(char*) * capacity);
+    
+    // First, we will copy the word into a separate variable.
+    char* originalWord = malloc(sizeof(char) * (strlen(word) + 5));
+    strcpy(originalWord, word);
 
+    //////////////////////////////////
     // Step 1: Inverted adjacent pairs
+    //////////////////////////////////
+
     for (int i = 0; i < strlen(word) - 1; i++)
     {
-        swap(&word[i], &word[i+1]);   // Swap the adjacent pair
-        bool misspelled = isMisspelled(hashTable, word);    // Check if the word is in the dictionary
+        swap(&originalWord[i], &originalWord[i+1]);   // Swap the adjacent pair
 
-        if (misspelled == false)
+        if (!isMisspelled(hashTable, originalWord))
         {
             // Double the capacity if the array is full
             if (size >= capacity)
@@ -152,13 +174,64 @@ void printSuggestions(openHashTable* hashTable, char* word)
                 suggestions = realloc(suggestions, sizeof(char*) * capacity);
             }
 
-            suggestions[size] = malloc(strlen(word) + 1);
-            strcpy(suggestions[size], word);
+            suggestions[size] = malloc(strlen(originalWord) + 1);
+            strcpy(suggestions[size], originalWord);
             size++;
         }
 
-        swap(&word[i], &word[i+1]);     // swap the same pair again to change the word back to how it was originally        
+        swap(&originalWord[i], &originalWord[i+1]);     // swap the same pair again to change the word back to how it was originally        
     }
+
+    //////////////////////////////////////////////////////
+    // Step 2: Missing letters in the beginning or the end
+    //////////////////////////////////////////////////////
+
+    // Let's start with the beginning by shifting each character to thr right and then inserting from a to z in the beginning.
+    shiftRight(originalWord);
+
+    // Let's add character from 'a' to 'z' in the front.
+    for (char c = 'a'; c <= 'z'; c++)
+    {
+        originalWord[0] = c;   // Put the character in the front
+
+        if (!isMisspelled(hashTable, originalWord))
+        {
+            if (size >= capacity)
+            {
+                capacity *= 2;
+                suggestions = realloc(suggestions, sizeof(char*) * capacity);
+            }
+
+            suggestions[size] = malloc(strlen(originalWord) + 1);
+            strcpy(suggestions[size], originalWord);
+            size++;    
+        }
+    }
+    strcpy(originalWord, word);    // Get the original word back
+
+    // Now, let's add characters 'a' to 'z' at the end.
+    for (char c = 'a'; c <= 'z'; c++)
+    {
+        originalWord[strlen(originalWord)] = c;
+
+        if (!isMisspelled(hashTable, originalWord))
+        {
+            if (size >= capacity)
+            {
+                capacity *= 2;
+                suggestions = realloc(suggestions, sizeof(char*) * capacity);
+            }
+            
+            suggestions[size] = malloc(strlen(originalWord) + 1);
+            strcpy(suggestions[size], originalWord);
+            size++;
+        }
+        strcpy(originalWord, word);    // Get the original word back
+    }
+
+    //////////////////////////////////
+    // Finally, print the suggestions
+    //////////////////////////////////
 
     printf("Suggestions: ");
     for (int i = 0; i < size; i++)
@@ -166,12 +239,15 @@ void printSuggestions(openHashTable* hashTable, char* word)
         printf("%s ", suggestions[i]);
     }
 
-    // Time to free the sugesstions array.
+    ///////////////////////////////////////////////////////
+    // Time to free the sugesstions array and originalWord.
+    //////////////////////////////////////////////////////
     for (int i = 0; i < size; i++)
     {
         free(suggestions[i]);
     }
-    free(suggestions);    
+    free(suggestions);
+    free(originalWord);
 }
 
 // Function to free the hash table
@@ -222,10 +298,6 @@ int main(int argc, char **argv)
     //This will help us know how much memory to allocate for our hash table
     while((lineSize = getline(&line,&lineBuffSize,fp)) !=-1)
         numOfWords++;
-
-    //Printing line count for debugging purposes.
-    //You can remove this part from your submission.
-    printf("Total number of words in dictionary: %d\n",numOfWords);
     
     //HINT: You can initialize your hash table here, since you know the size of the dictionary
     openHashTable* newOpenHashTable = malloc(sizeof(openHashTable));
@@ -240,21 +312,18 @@ int main(int argc, char **argv)
     //rewind file pointer to the beginning of the file, to be able to read it line by line.
     fseek(fp, 0, SEEK_SET);
 
-    printf("The Words in the Dictionary file:\n");
     char wrd[BUFSIZE];
     for (int i = 0; i < numOfWords; i++)
     {
         fscanf(fp, "%s \n", wrd);
-        //You can print the words for Debug purposes, just to make sure you are loading the dictionary as intended
-        printf("%d: %s\n",i,wrd);
         
         //HINT: here is a good place to insert the words into your hash table
         insertToHashTable(newOpenHashTable, wrd);
     }
     fclose(fp);
 
-    printf("\nPrinting out the Hash Table:\n");
-    printHashTable(newOpenHashTable);
+    //printf("\nPrinting out the Hash Table:\n");
+    //printHashTable(newOpenHashTable);
     
 	////////////////////////////////////////////////////////////////////
 	//read the input text file word by word
@@ -269,7 +338,7 @@ int main(int argc, char **argv)
 
     //HINT: You can use a flag to indicate if there is a misspleed word or not, which is initially set to 1
 	int noTypo=1;
-    printf("\nThe words in input file:\n");
+    
 	//read a line from the input file
 	while((lineSize = getline(&line,&lineBuffSize,fp)) !=-1)
 	{
@@ -284,13 +353,10 @@ int main(int argc, char **argv)
 		while(word!=NULL)
 		{
             // You can print the words of the inpit file for Debug purposes, just to make sure you are loading the input text as intended
-			printf("%s\n",word);
+			//printf("%s\n",word);
 
-            
             // HINT: Since this nested while loop will keep reading the input text word by word, here is a good place to check for misspelled words
-            bool misspelled = isMisspelled(newOpenHashTable, word);
-
-            if (misspelled == true)
+            if (isMisspelled(newOpenHashTable, word))
             {
                 noTypo = 0;
                 printf("Misspelled word: %s\n",word);
