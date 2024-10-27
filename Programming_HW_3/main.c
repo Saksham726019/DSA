@@ -20,14 +20,17 @@ typedef struct openHashTable
     Node** buckets;
 } openHashTable;
 
+
+// Hash function to compute hash value for a given word on the ASCII value of its characters.
 unsigned long hash(char *word, int size) {
-    unsigned long total = 0; // Initialize the total to 0
+    unsigned long total = 0;                        // Initialize the total to 0
     for (int i = 0; i < strlen(word); i++) {
-        total = total + word[i]; // Add the ASCII value of the character to total
-        total = total * 101; // Multiply the total by 101 (a prime number)
+        total = total + word[i];                    // Add the ASCII value of the character to total
+        total = total * 101;                        // Multiply the total by 101 (a prime number)
     }
-    return total % size; // Return the hash value constrained by the size
+    return total % size;                            // Return the hash value constrained by the size
 }
+
 
 int main(int argc, char **argv)
 {
