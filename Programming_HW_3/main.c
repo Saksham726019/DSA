@@ -131,22 +131,25 @@ void swap(char *a, char *b)
 
 void shiftRight(char* word)
 {
+    int len = strlen(word);
     for (int i = strlen(word); i > 0; i--)
     {
         word[i] = word[i-1];
     }
+    word[len + 1] = '\0';
 }
 
 void shiftLeft(char* word)
 {
+    int len = strlen(word);
     for (int i = 1; i < strlen(word); i++)
     {
         word[i-1] = word[i];
     }
-    word[strlen(word) - 1] = '\0';
+    word[len - 1] = '\0';
 }
 
-void printSuggestions(openHashTable* hashTable, char* word)
+void printSuggestions(openHashTable* hashTable, char* originalWord)
 {
     // Initialize an array to store suggestions
     int capacity = 3;
@@ -154,18 +157,18 @@ void printSuggestions(openHashTable* hashTable, char* word)
     char** suggestions = malloc(sizeof(char*) * capacity);
     
     // First, we will copy the word into a separate variable.
-    char* originalWord = malloc(sizeof(char) * (strlen(word) + 5));
-    strcpy(originalWord, word);
+    char* word = malloc(sizeof(char) * (strlen(originalWord) + 5));
+    strcpy(word, originalWord);
 
     //////////////////////////////////
     // Step 1: Inverted adjacent pairs
     //////////////////////////////////
 
-    for (int i = 0; i < strlen(word) - 1; i++)
+    for (int i = 0; i < strlen(originalWord) - 1; i++)
     {
-        swap(&originalWord[i], &originalWord[i+1]);   // Swap the adjacent pair
+        swap(&word[i], &word[i+1]);   // Swap the adjacent pair
 
-        if (!isMisspelled(hashTable, originalWord))
+        if (!isMisspelled(hashTable, word))
         {
             // Double the capacity if the array is full
             if (size >= capacity)
@@ -174,27 +177,27 @@ void printSuggestions(openHashTable* hashTable, char* word)
                 suggestions = realloc(suggestions, sizeof(char*) * capacity);
             }
 
-            suggestions[size] = malloc(strlen(originalWord) + 1);
-            strcpy(suggestions[size], originalWord);
+            suggestions[size] = malloc(strlen(word) + 1);
+            strcpy(suggestions[size], word);
             size++;
         }
 
-        swap(&originalWord[i], &originalWord[i+1]);     // swap the same pair again to change the word back to how it was originally        
+        swap(&word[i], &word[i+1]);     // swap the same pair again to change the word back to how it was originally        
     }
 
     //////////////////////////////////////////////////////
-    // Step 2: Missing letters in the beginning or the end
+    // Step 2: Missing letters at the beginning or the end
     //////////////////////////////////////////////////////
 
     // Let's start with the beginning by shifting each character to thr right and then inserting from a to z in the beginning.
-    shiftRight(originalWord);
+    shiftRight(word);
 
     // Let's add character from 'a' to 'z' in the front.
     for (char c = 'a'; c <= 'z'; c++)
     {
-        originalWord[0] = c;   // Put the character in the front
+        word[0] = c;   // Put the character in the front
 
-        if (!isMisspelled(hashTable, originalWord))
+        if (!isMisspelled(hashTable, word))
         {
             if (size >= capacity)
             {
@@ -202,19 +205,19 @@ void printSuggestions(openHashTable* hashTable, char* word)
                 suggestions = realloc(suggestions, sizeof(char*) * capacity);
             }
 
-            suggestions[size] = malloc(strlen(originalWord) + 1);
-            strcpy(suggestions[size], originalWord);
+            suggestions[size] = malloc(strlen(word) + 1);
+            strcpy(suggestions[size], word);
             size++;    
         }
     }
-    strcpy(originalWord, word);    // Get the original word back
+    strcpy(word, originalWord);    // Get the original word back
 
     // Now, let's add characters 'a' to 'z' at the end.
     for (char c = 'a'; c <= 'z'; c++)
     {
-        originalWord[strlen(originalWord)] = c;
+        word[strlen(word)] = c;
 
-        if (!isMisspelled(hashTable, originalWord))
+        if (!isMisspelled(hashTable, word))
         {
             if (size >= capacity)
             {
@@ -222,12 +225,50 @@ void printSuggestions(openHashTable* hashTable, char* word)
                 suggestions = realloc(suggestions, sizeof(char*) * capacity);
             }
             
-            suggestions[size] = malloc(strlen(originalWord) + 1);
-            strcpy(suggestions[size], originalWord);
+            suggestions[size] = malloc(strlen(word) + 1);
+            strcpy(suggestions[size], word);
             size++;
         }
-        strcpy(originalWord, word);    // Get the original word back
+        strcpy(word, originalWord);    // Get the original word back
     }
+
+    /////////////////////////////////////////////////////
+    // Step 3: Extra letters at the beginning or the end
+    ////////////////////////////////////////////////////
+
+    // Let's remove the first character of the string by shifting left.
+    shiftLeft(word);
+
+    if (!isMisspelled(hashTable, word))
+    {
+        if (size >= capacity)
+        {
+            capacity *= 2;
+            suggestions = realloc(suggestions, sizeof(char*) * capacity);
+        }
+
+        suggestions[size] = malloc(strlen(word) + 1);
+        strcpy(suggestions[size], word);
+        size++;        
+    }
+    strcpy(word, originalWord);     // Get the original word back
+
+    // Let's remove the last character of the string by declaring last index as '\0'
+    word[strlen(word) - 1] = '\0';
+
+    if (!isMisspelled(hashTable, word))
+    {
+        if (size >= capacity)
+        {
+            capacity *= 2;
+            suggestions = realloc(suggestions, sizeof(char*) * capacity);
+        }
+
+        suggestions[size] = malloc(strlen(word) + 1);
+        strcpy(suggestions[size], word);
+        size++;        
+    }
+    strcpy(word, originalWord);     // Get the original word back
 
     //////////////////////////////////
     // Finally, print the suggestions
@@ -247,7 +288,7 @@ void printSuggestions(openHashTable* hashTable, char* word)
         free(suggestions[i]);
     }
     free(suggestions);
-    free(originalWord);
+    free(word);
 }
 
 // Function to free the hash table
