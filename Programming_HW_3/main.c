@@ -23,12 +23,12 @@ typedef struct openHashTable
 
 // Hash function to compute hash value for a given word on the ASCII value of its characters.
 unsigned long hashFunction(char *word, int size) {
-    unsigned long total = 0;                        // Initialize the total to 0
+    unsigned long total = 0;
     for (int i = 0; i < strlen(word); i++) {
-        total = total + word[i];                    // Add the ASCII value of the character to total
+        total = total + word[i];
         total = total * 101;                        // Multiply the total by 101 (a prime number)
     }
-    return total % size;                            // Return the hash value constrained by the size
+    return total % size;
 }
 
 // Function to print Hash Table for debugging purpose.
@@ -327,9 +327,6 @@ int main(int argc, char **argv)
         insertToHashTable(newOpenHashTable, wrd);
     }
     fclose(fp);
-
-    //printf("\nPrinting out the Hash Table:\n");
-    //printHashTable(newOpenHashTable);
     
 	////////////////////////////////////////////////////////////////////
 	//read the input text file word by word
@@ -358,9 +355,6 @@ int main(int argc, char **argv)
 		//read the line word by word
 		while(word!=NULL)
 		{
-            // You can print the words of the inpit file for Debug purposes, just to make sure you are loading the input text as intended
-			//printf("%s\n",word);
-
             // HINT: Since this nested while loop will keep reading the input text word by word, here is a good place to check for misspelled words
             if (isMisspelled(newOpenHashTable, word))
             {
