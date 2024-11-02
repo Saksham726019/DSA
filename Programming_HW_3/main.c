@@ -132,27 +132,44 @@ void swap(char *a, char *b)
 void shiftRight(char* word)
 {
     int len = strlen(word);
-    for (int i = strlen(word); i > 0; i--)
+    word[len + 1] = '\0';
+    for (int i = len; i > 0; i--)
     {
         word[i] = word[i-1];
     }
-    word[len + 1] = '\0';
 }
 
 void shiftLeft(char* word)
 {
     int len = strlen(word);
-    for (int i = 1; i < strlen(word); i++)
+    for (int i = 1; i < len; i++)
     {
         word[i-1] = word[i];
     }
     word[len - 1] = '\0';
 }
 
+void checkAndAddSuggestion(openHashTable* hashTable, char** (*suggestions), int *size, int *capacity, char* word)
+{
+    if (!isMisspelled(hashTable, word))
+    {
+        // Double the capacity if the array is full
+        if (*size >= *capacity)
+        {
+            *capacity *= 2;
+            *suggestions = realloc(*suggestions, sizeof(char*) * (*capacity));  // Realloc will change the pointer to the array. So, we pass by reference for suggestions.
+        }
+
+        (*suggestions)[*size] = malloc(strlen(word) + 1);
+        strcpy((*suggestions)[*size], word);
+        (*size)++;
+    }
+}
+
 void printSuggestions(openHashTable* hashTable, char* originalWord)
 {
     // Initialize an array to store suggestions
-    int capacity = 3;
+    int capacity = 5;
     int size = 0;
     char** suggestions = malloc(sizeof(char*) * capacity);
     
@@ -168,19 +185,7 @@ void printSuggestions(openHashTable* hashTable, char* originalWord)
     {
         swap(&word[i], &word[i+1]);   // Swap the adjacent pair
 
-        if (!isMisspelled(hashTable, word))
-        {
-            // Double the capacity if the array is full
-            if (size >= capacity)
-            {
-                capacity *= 2;
-                suggestions = realloc(suggestions, sizeof(char*) * capacity);
-            }
-
-            suggestions[size] = malloc(strlen(word) + 1);
-            strcpy(suggestions[size], word);
-            size++;
-        }
+        checkAndAddSuggestion(hashTable, &suggestions, &size, &capacity, word);
 
         swap(&word[i], &word[i+1]);     // swap the same pair again to change the word back to how it was originally        
     }
@@ -197,18 +202,7 @@ void printSuggestions(openHashTable* hashTable, char* originalWord)
     {
         word[0] = c;   // Put the character in the front
 
-        if (!isMisspelled(hashTable, word))
-        {
-            if (size >= capacity)
-            {
-                capacity *= 2;
-                suggestions = realloc(suggestions, sizeof(char*) * capacity);
-            }
-
-            suggestions[size] = malloc(strlen(word) + 1);
-            strcpy(suggestions[size], word);
-            size++;    
-        }
+        checkAndAddSuggestion(hashTable, &suggestions, &size, &capacity, word);
     }
     strcpy(word, originalWord);    // Get the original word back
 
@@ -216,19 +210,10 @@ void printSuggestions(openHashTable* hashTable, char* originalWord)
     for (char c = 'a'; c <= 'z'; c++)
     {
         word[strlen(word)] = c;
+        word[strlen(word) + 1] = '\0';
 
-        if (!isMisspelled(hashTable, word))
-        {
-            if (size >= capacity)
-            {
-                capacity *= 2;
-                suggestions = realloc(suggestions, sizeof(char*) * capacity);
-            }
-            
-            suggestions[size] = malloc(strlen(word) + 1);
-            strcpy(suggestions[size], word);
-            size++;
-        }
+        checkAndAddSuggestion(hashTable, &suggestions, &size, &capacity, word);
+
         strcpy(word, originalWord);    // Get the original word back
     }
 
@@ -239,35 +224,15 @@ void printSuggestions(openHashTable* hashTable, char* originalWord)
     // Let's remove the first character of the string by shifting left.
     shiftLeft(word);
 
-    if (!isMisspelled(hashTable, word))
-    {
-        if (size >= capacity)
-        {
-            capacity *= 2;
-            suggestions = realloc(suggestions, sizeof(char*) * capacity);
-        }
+    checkAndAddSuggestion(hashTable, &suggestions, &size, &capacity, word);
 
-        suggestions[size] = malloc(strlen(word) + 1);
-        strcpy(suggestions[size], word);
-        size++;        
-    }
     strcpy(word, originalWord);     // Get the original word back
 
     // Let's remove the last character of the string by declaring last index as '\0'
     word[strlen(word) - 1] = '\0';
 
-    if (!isMisspelled(hashTable, word))
-    {
-        if (size >= capacity)
-        {
-            capacity *= 2;
-            suggestions = realloc(suggestions, sizeof(char*) * capacity);
-        }
-
-        suggestions[size] = malloc(strlen(word) + 1);
-        strcpy(suggestions[size], word);
-        size++;        
-    }
+    checkAndAddSuggestion(hashTable, &suggestions, &size, &capacity, word);
+    
     strcpy(word, originalWord);     // Get the original word back
 
     //////////////////////////////////
@@ -313,7 +278,7 @@ int main(int argc, char **argv)
 	char *dictionaryFilePath = argv[1]; //this keeps the path to the dictionary file file
 	char *inputFilePath = argv[2]; //this keeps the path to the input text file
 	char *check = argv[3]; // this keeps the flag to whether we should insert mistyped words into dictionary or ignore
-	int numOfWords=0; //this variable will tell us how much memory to allocate
+	int numOfWords = 0; //this variable will tell us how much memory to allocate
 
 	int insertToDictionary;
 	if(strcmp(check,"add")==0)
@@ -400,15 +365,14 @@ int main(int argc, char **argv)
             if (isMisspelled(newOpenHashTable, word))
             {
                 noTypo = 0;
-                printf("Misspelled word: %s\n",word);
+                printf("Misspelled word: %s\n",word);                
+                printSuggestions(newOpenHashTable, word);
+                printf("\n");
 
                 if (insertToDictionary == 1)
                 {
                     insertToHashTable(newOpenHashTable, word);
                 }
-                
-                printSuggestions(newOpenHashTable, word);
-                printf("\n");
             }
             
 			word = strtok(NULL,delimiter); 
