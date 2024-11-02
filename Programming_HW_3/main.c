@@ -401,6 +401,12 @@ int main(int argc, char **argv)
             {
                 noTypo = 0;
                 printf("Misspelled word: %s\n",word);
+
+                if (insertToDictionary == 1)
+                {
+                    insertToHashTable(newOpenHashTable, word);
+                }
+                
                 printSuggestions(newOpenHashTable, word);
                 printf("\n");
             }
