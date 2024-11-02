@@ -1,0 +1,2 @@
+ello wordl! my name is john. 
+same ncorrect wordl twice should report error onyl once if you update the dictionary.
