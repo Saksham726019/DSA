@@ -1,0 +1,8 @@
+Misspelled word: ello
+Suggestions: bello cello hello jello ell 
+Misspelled word: wordl
+Suggestions: world wordle word 
+Misspelled word: ncorrect
+Suggestions: incorrect uncorrect correct 
+Misspelled word: onyl
+Suggestions: only nonyl ony 
