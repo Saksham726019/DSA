@@ -20,9 +20,10 @@ The program implements three main error checks:
 gcc -o spell_checker main.c
 
 ## Run/Execute the program
-./spell_checker words.txt test.txt <argument>
+./spell_checker words.txt test.txt [argument]
 
 argument: add or ignore
 
 add: if there is a mispelled word in the test.txt, then the program will detect it, suggest the correct words, but also, it will add that misspelled word into the dictionary.
+
 ignore: if there is a mispelled word in the test.txt, then the program will detect it, suggest the correct words, but will not add it to the dictionary.
