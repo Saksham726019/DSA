@@ -211,6 +211,12 @@ int main(int argc, char **argv)
     }
   }
 
+  // Print the nodeArray for debugging purpose
+  for (int i = 0; i < nodeCount; i++)
+  {
+    printf("Node %d: Character = %c, Frequency = %u\n", i, nodeArray[i]->character, nodeArray[i]->frequency);
+  }
+
   // We will build the min heap.
   Heap* heap = initializeHeap(nodeCount);
 
@@ -221,7 +227,7 @@ int main(int argc, char **argv)
   }
   
   // Print the heap for debugging purpose. (Delete after debugging)
-  printf("Before extracting min\n\n");
+  printf("\nBefore extracting min\n\n");
   for (int i = 0; i < heap->size; i++) 
   {
     printf("Node %d: Character = %c, Frequency = %u\n", i, heap->array[i]->character, heap->array[i]->frequency);
