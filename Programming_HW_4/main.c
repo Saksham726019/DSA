@@ -48,6 +48,35 @@ Heap* initializeHeap(int capacity)
   return heap;
 }
 
+int parent(Heap* heap, int index)
+{
+  int parentIndex = (int)((index - 1)/2);
+
+  return parentIndex;
+}
+
+void upHeap(Heap* heap, int index)
+{
+  if (index != 0)
+  {
+    int parentIndex = parent(heap, index);
+    int parentFrequency = heap -> array[parentIndex]->frequency;
+
+    if (parentFrequency > heap -> array[index]->frequency)
+    {
+      swap(&heap->array[parentIndex], &heap->array[index]);
+      upHeap(heap, parentIndex);
+    }  
+  }
+}
+
+void insertToHeap(Heap* heap, Node* node)
+{
+  heap -> array[heap -> size] = node;
+  upHeap(heap, heap -> size);
+  heap -> size++;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -105,35 +134,39 @@ int main(int argc, char **argv)
   }
   fclose(inputFile);
 
-  // Printing the total number of characters (remove this later)
-  // printf("Total number of characters: %d\n\n", totalNumOfCharacters);
-
   // We will create a NodeArray that will store all the characters we have in the CodeTable and then generate a heap (priority queue)
-  Node* nodeArray = malloc(sizeof(Node) * totalNumOfCharacters);
+  Node** nodeArray = malloc(sizeof(Node*) * totalNumOfCharacters);
   int nodeCount = 0;
 
   for (int i = 0; i < 256; i++)
   {
     if (codeTable[i].frequency > 0)
     {
-      nodeArray[nodeCount].character = i;
-      nodeArray[nodeCount].frequency = codeTable[i].frequency;
-      nodeArray[nodeCount].left = NULL;
-      nodeArray[nodeCount].right = NULL;
+      Node* newNode = malloc(sizeof(Node));
+      newNode -> character = i;
+      newNode -> frequency = codeTable[i].frequency;
+      newNode -> left = NULL;
+      newNode -> right = NULL;
+
+      nodeArray[nodeCount] = newNode;
       nodeCount++;
     }
   }
 
-  /* Let's print the node array (remove this line)
-  for (int i = 0; i < nodeCount; i++)
-  {
-    printf("%c\t%d\n", nodeArray[i].character, nodeArray[i].frequency);
-  }
-  */
-  
-  
   // We will build the min heap.
   Heap* heap = initializeHeap(nodeCount);
+
+  // We will insert to heap.
+  for (int i = 0; i < nodeCount; i++)
+  {
+    insertToHeap(heap, nodeArray[i]);
+  }
+
+  // Print the heap for debugging purpose. (Delete after debugging)
+  for (int i = 0; i < heap->size; i++) {
+      printf("Node %d: Character = %c, Frequency = %u\n", i, heap->array[i]->character, heap->array[i]->frequency);
+  }
+  
     
   // now that you have collected the frequency of each character that is present 
   // in the input file, you need to generate the code table.
