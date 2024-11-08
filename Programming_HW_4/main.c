@@ -16,14 +16,6 @@ typedef struct Node
   struct Node* right;
 } Node;
 
-
-/* Heap (priority queue)
- ● The root of the tree is in A[0]
- ● Parent of node at index n is at index (n − 1)/2
- ● Left Child of node at index n is at index (n + 1) * 2 − 1
- ● Right Child of node at index n is at index (n + 1) * 2
-*/
-
 typedef struct Heap
 {
   int capacity;
@@ -55,6 +47,32 @@ int parent(Heap* heap, int index)
   return parentIndex;
 }
 
+int minChild(Heap* heap, int index)
+{
+  int leftChildIndex = ((index + 1) * 2) - 1;
+  int rightChildIndex = (index + 1) * 2;
+
+  if (heap -> size-1 >= rightChildIndex)
+  {
+    if (heap -> array[rightChildIndex]->frequency >= heap -> array[leftChildIndex]->frequency)
+    {
+      return leftChildIndex;
+
+    } else
+    {
+      return rightChildIndex;
+    }
+
+  } else if (heap -> size - 1 == leftChildIndex)
+  {
+    return leftChildIndex;
+
+  } else
+  {
+    return -1;
+  }
+}
+
 void upHeap(Heap* heap, int index)
 {
   if (index != 0)
@@ -70,11 +88,51 @@ void upHeap(Heap* heap, int index)
   }
 }
 
+void downHeap(Heap* heap, int index)
+{
+  if (!(heap -> size-1 < (index + 1)*2 - 1))
+  {
+    int minChildIndex = minChild(heap, index);
+
+    if (heap -> array[index]->frequency > heap -> array[minChildIndex]->frequency)    // If parent is greater than child, swap.
+    {
+      swap(&heap -> array[index], &heap -> array[minChildIndex]);
+      downHeap(heap, minChildIndex);    // Recursively downheap until the min heap property is fixed.
+    }
+  } 
+}
+
 void insertToHeap(Heap* heap, Node* node)
 {
   heap -> array[heap -> size] = node;
   upHeap(heap, heap -> size);
   heap -> size++;
+}
+
+Node* extractMin(Heap* heap)
+{
+  Node* min = heap -> array[0];   // Root is the smallest node as it's the min heap.
+
+  swap(&heap -> array[0], &heap -> array[(heap -> size-1)]);
+  heap -> size--;
+  downHeap(heap, 0);
+
+  return min;
+}
+
+void freeMemory(Heap* heap, CodeTable* codeTable, Node** nodeArray)
+{
+  for (int i = 0; i < heap -> size; i++)
+  {
+    free(heap -> array[i]);
+  }
+
+  free(heap -> array);
+  free(heap);
+
+  free(codeTable);
+
+  free(nodeArray);  
 }
 
 
@@ -161,13 +219,23 @@ int main(int argc, char **argv)
   {
     insertToHeap(heap, nodeArray[i]);
   }
-
-  // Print the heap for debugging purpose. (Delete after debugging)
-  for (int i = 0; i < heap->size; i++) {
-      printf("Node %d: Character = %c, Frequency = %u\n", i, heap->array[i]->character, heap->array[i]->frequency);
-  }
   
-    
+  // Print the heap for debugging purpose. (Delete after debugging)
+  printf("Before extracting min\n\n");
+  for (int i = 0; i < heap->size; i++) 
+  {
+    printf("Node %d: Character = %c, Frequency = %u\n", i, heap->array[i]->character, heap->array[i]->frequency);
+  }
+
+  Node* min = extractMin(heap);
+  printf("\nMinimum Node: Character = %c, Frequency = %u\n\n", min->character, min->frequency);
+
+  printf("Heap after extracting Min:\n");
+  for (int i = 0; i < heap->size; i++) 
+  {
+    printf("Node %d: Character = %c, Frequency = %u\n", i, heap->array[i]->character, heap->array[i]->frequency);
+  }
+
   // now that you have collected the frequency of each character that is present 
   // in the input file, you need to generate the code table.
   
@@ -208,6 +276,9 @@ int main(int argc, char **argv)
   // 1) read code table: you can use fscanf() function, since the code table file is well structured. Alternatively, you can also use the read statements from above as was used for reading input text file.
   // 2) read encoded text, which is a single line consisting of 0/1 characters: This file is better be read character by character, for which you can use a code similar to getc() code above
   // 3) write the decoded text into file: for that, you can write it into the file using a code similar to fprintf() usages exemplified above.
+
+  // Time to free all the memory
+  freeMemory(heap, codeTable, nodeArray);
 
   return 0;
 }
