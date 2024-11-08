@@ -120,6 +120,23 @@ Node* extractMin(Heap* heap)
   return min;
 }
 
+void buildHuffmanTree(Heap* heap)
+{
+  while (heap->size > 1)
+  {
+    Node* min_1 = extractMin(heap);
+    Node* min_2 = extractMin(heap);
+
+    Node* new_node = malloc(sizeof(Node));
+    new_node->character = '\0';
+    new_node->frequency = (min_1->frequency) + (min_2->frequency);
+    new_node->left = min_1;
+    new_node->right = min_2;
+
+    insertToHeap(heap, new_node);
+  }
+}
+
 void freeMemory(Heap* heap, CodeTable* codeTable, Node** nodeArray)
 {
   for (int i = 0; i < heap -> size; i++)
