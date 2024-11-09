@@ -90,7 +90,7 @@ void upHeap(Heap* heap, int index)
 
 void downHeap(Heap* heap, int index)
 {
-  if (!(heap -> size-1 < (index + 1)*2 - 1))
+  if (!(heap -> size-1 < ((index + 1)*2) - 1))
   {
     int minChildIndex = minChild(heap, index);
 
@@ -137,7 +137,62 @@ void buildHuffmanTree(Heap* heap)
   }
 }
 
-void freeMemory(Heap* heap, CodeTable* codeTable, Node** nodeArray)
+void labelHuffmanEdges(Node* node, CodeTable* codeTable, char* binaryArray, int depth)
+{
+  if (node != NULL)
+  {
+    if (node->left == NULL && node->right == NULL)    // We hit the leaf node, which has a character.
+    {
+      codeTable[node->character].binary_code = malloc(sizeof(char) * (depth + 1));
+      strncpy(codeTable[node->character].binary_code, binaryArray, depth);
+      codeTable[node->character].binary_code[depth] = '\0';
+
+      // Print statement for debugging. Remove later
+      printf("%c, %s, %u\n", node->character, codeTable[node->character].binary_code, node->frequency);
+
+      return;
+    }
+
+    // Traverse left and add '0' along the way.
+    binaryArray[depth] = '0';
+    labelHuffmanEdges(node->left, codeTable, binaryArray, depth + 1);
+
+    // Traverse right and add '1' along the way.
+    binaryArray[depth] = '1';
+    labelHuffmanEdges(node->right, codeTable, binaryArray, depth + 1);
+  }
+}
+
+// Partition
+int partition(Node** arr, int low, int high) {
+  int mid = low + (high - low)/2;
+  Node* pivot = arr[mid];  // Taking middle element as the pivot.
+  int i = low - 1;
+
+  swap(&arr[mid], &arr[high]);    // Swapping the pivot with the last element.
+
+  for (int j = low; j < high; j++) {
+    if (arr[j]->frequency < pivot->frequency || (arr[j]->frequency == pivot->frequency && arr[j]->character < pivot->character)) 
+    {
+      i++;
+      swap(&arr[i], &arr[j]);
+    }
+  }
+
+  swap(&arr[i + 1], &arr[high]);  // Putting the pivot in the middle.
+  return i + 1;   // Returning pivot's index
+}
+
+// Quicksort
+void quickSort(Node** arr, int low, int high) {
+  if (low < high) {
+    int pivotIndex = partition(arr, low, high);
+    quickSort(arr, low, pivotIndex - 1);
+    quickSort(arr, pivotIndex + 1, high);
+  }
+}
+
+void freeMemory(Heap* heap, CodeTable* codeTable, Node** nodeArray, char* binaryArray)
 {
   for (int i = 0; i < heap -> size; i++)
   {
@@ -147,9 +202,17 @@ void freeMemory(Heap* heap, CodeTable* codeTable, Node** nodeArray)
   free(heap -> array);
   free(heap);
 
-  free(codeTable);
+  for (int i = 0; i < 256; i++)
+  {
+    if (codeTable[i].binary_code != NULL)
+    {
+      free(codeTable[i].binary_code);
+    }
+  }
 
-  free(nodeArray);  
+  free(codeTable);
+  free(nodeArray);
+  free(binaryArray);
 }
 
 
@@ -209,7 +272,7 @@ int main(int argc, char **argv)
   }
   fclose(inputFile);
 
-  // We will create a NodeArray that will store all the characters we have in the CodeTable and then generate a heap (priority queue)
+  // We will create a NodeArray that will store all the characters we have in the CodeTable with frequency > 0 and then generate a heap (priority queue)
   Node** nodeArray = malloc(sizeof(Node*) * totalNumOfCharacters);
   int nodeCount = 0;
 
@@ -228,12 +291,6 @@ int main(int argc, char **argv)
     }
   }
 
-  // Print the nodeArray for debugging purpose
-  for (int i = 0; i < nodeCount; i++)
-  {
-    printf("Node %d: Character = %c, Frequency = %u\n", i, nodeArray[i]->character, nodeArray[i]->frequency);
-  }
-
   // We will build the min heap.
   Heap* heap = initializeHeap(nodeCount);
 
@@ -242,52 +299,39 @@ int main(int argc, char **argv)
   {
     insertToHeap(heap, nodeArray[i]);
   }
-  
-  // Print the heap for debugging purpose. (Delete after debugging)
-  printf("\nBefore extracting min\n\n");
-  for (int i = 0; i < heap->size; i++) 
-  {
-    printf("Node %d: Character = %c, Frequency = %u\n", i, heap->array[i]->character, heap->array[i]->frequency);
-  }
 
-  Node* min = extractMin(heap);
-  printf("\nMinimum Node: Character = %c, Frequency = %u\n\n", min->character, min->frequency);
+  // We will now build Huffman Tree
+  buildHuffmanTree(heap);
 
-  printf("Heap after extracting Min:\n");
-  for (int i = 0; i < heap->size; i++) 
-  {
-    printf("Node %d: Character = %c, Frequency = %u\n", i, heap->array[i]->character, heap->array[i]->frequency);
-  }
+  // We will label the edges of huffman tree. Left edges as 0 and right edges as 1. Then, we will store in the codeTable once we hit the leaf node
+  Node* root = heap->array[0];
+  char* binaryArray = malloc(sizeof(char)*256);
+  labelHuffmanEdges(root, codeTable, binaryArray, 0);
 
-  // now that you have collected the frequency of each character that is present 
-  // in the input file, you need to generate the code table.
-  
-  // Hint: when initializing the heap to be used in the generation of Huffman
-  // 		 tree, keep in mind that you know how many unique characters have
-  //		 appeared in the input text. You can get this number by going through
-  //		 your codeTable...
-  
   /*----------------------------------------------*/ 
-  /* to write the code table into the file, you might want to use a code as follows
+  // to write the code table into the file, you might want to use a code as follows
   FILE *codeTableFile = fopen(codeTableFilePath, "w");
   if (codeTableFile == NULL)
   {
-      printf("Could not open file to write: %s\n",codeTableFilePath);
-      return;
+    printf("Could not open file to write: %s\n",codeTableFilePath);
+    return -1;
   }
 
-  // Write the code table into file:
-  for(int i = numOfCharacters - 1; i >= 0; i--)
+  // Sort the nodeArray in descending order. nodeArray is basically codeTable, but only contains characters with frequency > 0. That way, we don't have to deal with characters with frequcny < 0 while sorting.
+  quickSort(nodeArray, 0, nodeCount-1);
+
+  // Write the nodeArray into codeTable file. 
+  for(int i = nodeCount - 1; i >= 0; i--)
   {
-    fprintf(codeTableFile, "%c\t%s\t%d\n", characters[i], characterCodes[i], characterFrequencies[i]); 
+    fprintf(codeTableFile, "%c\t%s\t%u\n", nodeArray[i]->character, codeTable[nodeArray[i]->character].binary_code, nodeArray[i]->frequency);
   }
   fclose(codeTableFile);
   
-  /*----------------------------------------------
+
   // To print the statistics about the compression, use print statements as follows
-  printf("Original: %d bits\n", uncompressed*8); //assuming that you store the number of characters in variable "uncompressed". *8 is because ASCII table uses 8 bits to represent each character
-  printf("Compressed: %d bits\n", compressed_size); //assuming that you store the number of bits (i.e., 0/1s) of encoded text in variable "compressed_size"
-  printf("Compression Ratio: %.2f%%\n", (float)compressed_size/((float)uncompressed*8)*100); //This line will print the compression ration in percentages, up to 2 decimals.
+  // printf("Original: %d bits\n", totalNumOfCharacters*8); //assuming that you store the number of characters in variable "uncompressed". *8 is because ASCII table uses 8 bits to represent each character
+  // printf("Compressed: %d bits\n", compressed_size); //assuming that you store the number of bits (i.e., 0/1s) of encoded text in variable "compressed_size"
+  // printf("Compression Ratio: %.2f%%\n", (float)compressed_size/((float)uncompressed*8)*100); //This line will print the compression ration in percentages, up to 2 decimals.
   
   /*----------------------------------------------*/
   // to write encoded version of the text in 0/1 form into text file, you can use a code similar to fprintf statment above that is suggested for writing code table to the file.
@@ -301,7 +345,7 @@ int main(int argc, char **argv)
   // 3) write the decoded text into file: for that, you can write it into the file using a code similar to fprintf() usages exemplified above.
 
   // Time to free all the memory
-  freeMemory(heap, codeTable, nodeArray);
+  freeMemory(heap, codeTable, nodeArray, binaryArray);
 
   return 0;
 }
