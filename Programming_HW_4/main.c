@@ -513,6 +513,13 @@ int main(int argc, char **argv)
     int totalNumOfCharacters = 0;
     CodeTable* codeTable = malloc(sizeof(CodeTable) * 256);
 
+    // Set frequency to zero and binary_codes to NULL initially.
+    for(int i = 0; i < 256; i++)
+    {
+      codeTable[i].frequency = 0;
+      codeTable[i].binary_code = NULL;
+    }
+
     while (fgets(line, sizeof(line), codeTableFile))
     {
       if ((sscanf(line, "%c\t%s\t%u", &c, binary_code, &frequency)) != 3)
