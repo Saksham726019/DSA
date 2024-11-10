@@ -203,41 +203,6 @@ void labelHuffmanEdges(Node* node, CodeTable* codeTable, char* binaryArray, int 
   }
 }
 
-// Print huffman tree.
-void printHuffmanTree(Node* node, CodeTable* codeTable, int depth) 
-{
-  if (node == NULL) return;  // Base case: if node is NULL, return
-
-  // Increase indentation based on depth level in the tree
-  for (int i = 0; i < depth; i++) 
-  {
-    printf("    ");
-  }
-
-  // Print the character and frequency, marking internal nodes if they have no character
-  if (node->character == '\0') 
-  {
-    printf("Internal Node (Freq: %d)\n", node->frequency);
-
-  } else 
-  {
-    printf("%c\t%s\n", node->character, codeTable[node->character].binary_code);
-  }
-
-  // Recur for left and right children, increasing depth by 1 for indentation
-  if (node->left) 
-  {
-    printf("L-> ");
-    printHuffmanTree(node->left, codeTable, depth + 1);
-  }
-
-  if (node->right) 
-  {
-    printf("R-> ");
-    printHuffmanTree(node->right, codeTable, depth + 1);
-  }
-}
-
 // Function to traverse the huffman tree and write to decode file. Only for decode mode.
 void traverseAndDecode(char* encodedTextFilePath, char* decodedTextFilePath, Node* node)
 {
@@ -466,7 +431,7 @@ int main(int argc, char **argv)
       return -1;
     }
 
-    // Sort the nodeArray in descending order. 
+    // Sort the nodeArray.
     quickSort(nodeArray, 0, nodeCount-1);
 
     // Write the nodeArray into codeTable file. 
