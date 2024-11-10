@@ -23,6 +23,7 @@ typedef struct Heap
   Node** array;
 } Heap;
 
+// Function to swap nodes by reference.
 void swap(Node** a, Node** b) 
 {
   Node* temp = *a;
@@ -30,6 +31,38 @@ void swap(Node** a, Node** b)
   *b = temp;
 }
 
+// Function to initialize Node* nodeArray.
+Node** intializeNodeArray(int capacity)
+{
+  Node** nodeArray = malloc(sizeof(Node*) * capacity);
+
+  return nodeArray;
+}
+
+// Function to insert Nodes to nodeArray. It will return total nodeCount which will be used to create a heap.
+int insertToNodeArray(Node** nodeArray, CodeTable* codeTable, int count)
+{
+  int nodeCount = 0;
+
+  for (int i = 0; i < count; i++)
+  {
+    if (codeTable[i].frequency > 0)
+    {
+      Node* newNode = malloc(sizeof(Node));
+      newNode -> character = i;
+      newNode -> frequency = codeTable[i].frequency;
+      newNode -> left = NULL;
+      newNode -> right = NULL;
+
+      nodeArray[nodeCount] = newNode;
+      nodeCount++;
+    }
+  }
+
+  return nodeCount;
+}
+
+// This function initializes the heap.
 Heap* initializeHeap(int capacity)
 {
   Heap* heap = malloc(sizeof(Heap));
@@ -75,6 +108,7 @@ int minChild(Heap* heap, int index)
   }
 }
 
+// Start from the node we just inserted. If node < parent, swap. Keep going up the heap recursively and fix the heap property.
 void upHeap(Heap* heap, int index)
 {
   if (index != 0)
@@ -90,6 +124,7 @@ void upHeap(Heap* heap, int index)
   }
 }
 
+// Start from the root node. If node > child, swap. Keep going down the heap recursively and fix the heap property.
 void downHeap(Heap* heap, int index)
 {
   if (!(heap -> size-1 < ((index + 1)*2) - 1))
@@ -104,6 +139,7 @@ void downHeap(Heap* heap, int index)
   } 
 }
 
+// This functions inserts the node to the end of heap and uses upHeap function to fix the heap property.
 void insertToHeap(Heap* heap, Node* node)
 {
   heap -> array[heap -> size] = node;   // Append at the end of heap
@@ -111,6 +147,7 @@ void insertToHeap(Heap* heap, Node* node)
   heap -> size++;
 }
 
+// Extracts the root node and uses downHeap function to fix the heap property.
 Node* extractMin(Heap* heap)
 {
   Node* min = heap -> array[0];   // Root is the smallest node as it's the min heap.
@@ -121,25 +158,6 @@ Node* extractMin(Heap* heap)
 
   return min;
 }
-
-// Print Huffman tree characters in pre-order for debugging. Remove later
-void printHuffmanTree(Node* root) {
-  if (root == NULL) 
-  {
-    return;
-  }
-
-  if (root->character != '\0') {
-    printf("%c ", root->character);
-  } else {
-    printf("NULL ");
-  }
-
-  // Recursively traverse the left and right subtrees
-  printHuffmanTree(root->left);
-  printHuffmanTree(root->right);
-}
-
 
 // This function builds a huffman Tree. We will add labels only after the tree is built. At last, the heap will only have one node, which is a root of the tree.
 void buildHuffmanTree(Heap* heap)
@@ -159,9 +177,6 @@ void buildHuffmanTree(Heap* heap)
 
     insertToHeap(heap, new_node);   // Insert to the heap again.
   }
-
-  printHuffmanTree(heap->array[0]);
-  printf("\n");
 }
 
 // This function will label the edges of huffman tree. Left edges as 0 and right edges as 1. Then, we will store the binary code in the codeTable once we hit the leaf node.
@@ -175,9 +190,6 @@ void labelHuffmanEdges(Node* node, CodeTable* codeTable, char* binaryArray, int 
       strncpy(codeTable[node->character].binary_code, binaryArray, depth);    // Store the binary code for that character in the codeTable
       codeTable[node->character].binary_code[depth] = '\0';
 
-      // Print statement for debugging. Remove later
-      printf("%c\t%s\t%u\n", node->character, codeTable[node->character].binary_code, node->frequency);
-
       return;
     }
 
@@ -189,6 +201,83 @@ void labelHuffmanEdges(Node* node, CodeTable* codeTable, char* binaryArray, int 
     binaryArray[depth] = '1';
     labelHuffmanEdges(node->right, codeTable, binaryArray, depth + 1);
   }
+}
+
+// Print huffman tree.
+void printHuffmanTree(Node* node, CodeTable* codeTable, int depth) 
+{
+  if (node == NULL) return;  // Base case: if node is NULL, return
+
+  // Increase indentation based on depth level in the tree
+  for (int i = 0; i < depth; i++) 
+  {
+    printf("    ");
+  }
+
+  // Print the character and frequency, marking internal nodes if they have no character
+  if (node->character == '\0') 
+  {
+    printf("Internal Node (Freq: %d)\n", node->frequency);
+
+  } else 
+  {
+    printf("%c\t%s\n", node->character, codeTable[node->character].binary_code);
+  }
+
+  // Recur for left and right children, increasing depth by 1 for indentation
+  if (node->left) 
+  {
+    printf("L-> ");
+    printHuffmanTree(node->left, codeTable, depth + 1);
+  }
+
+  if (node->right) 
+  {
+    printf("R-> ");
+    printHuffmanTree(node->right, codeTable, depth + 1);
+  }
+}
+
+// Function to traverse the huffman tree and write to decode file. Only for decode mode.
+void traverseAndDecode(char* encodedTextFilePath, char* decodedTextFilePath, Node* node)
+{
+  FILE* encodedFile = fopen(encodedTextFilePath, "r");
+  if (encodedFile == NULL)
+  {
+    printf("Could not open file to write: %s\n",encodedTextFilePath);
+    return;
+  }
+
+  FILE* decodedFile = fopen(decodedTextFilePath, "w");
+  if (decodedFile == NULL)
+  {
+    printf("Could not open file to write: %s\n",decodedTextFilePath);
+    return;
+  }
+
+  char bit;
+  Node* currentNode = node;
+  while ((bit = fgetc(encodedFile)) != EOF)
+  {    
+    if (bit == '0')
+    {
+      currentNode = currentNode->left;
+
+    } else if (bit == '1')
+    {
+      currentNode = currentNode->right;
+    }
+
+    // We've hit the leaf node. Write the character in the current node to decodedFile.
+    if (currentNode->left == NULL && currentNode->right == NULL)
+    {
+      fprintf(decodedFile, "%c", currentNode->character);
+      currentNode = node;
+    }
+  }
+
+  fclose(encodedFile);
+  fclose(decodedFile);
 }
 
 // Partition function.
@@ -262,28 +351,37 @@ void writeEncodedToFile(char* inputTextFilePath, char* encodedTextFilePath, Code
   fclose(encodeFile);
 }
 
-// Free all the dynamically allocated memory.
-void freeMemory(Heap* heap, CodeTable* codeTable, Node** nodeArray, char* binaryArray)
+// Function to recursively free the Huffman tree nodes
+void freeHuffmanTree(Node* node)
 {
-  for (int i = 0; i < heap -> size; i++)
-  {
-    free(heap -> array[i]);
-  }
+  if (node == NULL) return;
+  
+  // Recursively free left and right subtrees
+  freeHuffmanTree(node->left);
+  freeHuffmanTree(node->right);
+  
+  // Free the current node
+  free(node);
+}
 
-  free(heap -> array);
+// Free all the dynamically allocated memory
+void freeMemory(Heap* heap, CodeTable* codeTable, Node** nodeArray)
+{
+  // Free the Huffman tree (root node is in heap->array[0])
+  freeHuffmanTree(heap->array[0]);
+
+  // Free the heap
+  free(heap->array);
   free(heap);
 
+  // Free the codeTable binary codes
   for (int i = 0; i < 256; i++)
   {
-    if (codeTable[i].binary_code != NULL)
-    {
-      free(codeTable[i].binary_code);
-    }
+    free(codeTable[i].binary_code);
   }
 
   free(codeTable);
   free(nodeArray);
-  free(binaryArray);
 }
 
 
@@ -317,10 +415,11 @@ int main(int argc, char **argv)
     // The character's ASCII code will serve as hashing the index for that character.
     CodeTable *codeTable = malloc(sizeof(CodeTable)*256);
 
-    //set counters to zero initially
+    //set frequency to zero and binary_codes to NULL initially.
     for(int i = 0; i < 256; i++)
     {
       codeTable[i].frequency = 0;
+      codeTable[i].binary_code = NULL;
     }
 
     int totalNumOfCharacters=0;
@@ -338,23 +437,9 @@ int main(int argc, char **argv)
 
     // We will create a NodeArray that will store all the characters we have in the CodeTable with frequency > 0 and then generate a min heap (priority queue)
     // nodeArray is basically codeTable, but only contains characters with frequency > 0. That way, we don't have to deal with characters with frequcny < 0 while sorting.
-    Node** nodeArray = malloc(sizeof(Node*) * totalNumOfCharacters);
-    int nodeCount = 0;
-
-    for (int i = 0; i < 256; i++)
-    {
-      if (codeTable[i].frequency > 0)
-      {
-        Node* newNode = malloc(sizeof(Node));
-        newNode -> character = i;
-        newNode -> frequency = codeTable[i].frequency;
-        newNode -> left = NULL;
-        newNode -> right = NULL;
-
-        nodeArray[nodeCount] = newNode;
-        nodeCount++;
-      }
-    }
+    // Also, since we make nodes for each character, it's easier to make a heap as well.
+    Node** nodeArray = intializeNodeArray(totalNumOfCharacters);
+    int nodeCount = insertToNodeArray(nodeArray, codeTable, 256);
 
     // We will build the min heap.
     Heap* heap = initializeHeap(nodeCount);
@@ -370,7 +455,7 @@ int main(int argc, char **argv)
 
     // We will label the edges of huffman tree. Left edges as 0 and right edges as 1. Then, we will store the binary code in the codeTable once we hit the leaf node
     Node* root = heap->array[0];
-    char* binaryArray = malloc(sizeof(char)*256);
+    char binaryArray[256];
     labelHuffmanEdges(root, codeTable, binaryArray, 0);
 
     // Now that the codeTable has binary_codes for each character with frequency > 0, we will write to the codeTableFile
@@ -395,28 +480,78 @@ int main(int argc, char **argv)
 
     // To print the statistics about the compression, use print statements as follows
     printf("Original: %d bits\n", totalNumOfCharacters*8);
-    printf("Compressed: %d bits\n", compressed_size); //assuming that you store the number of bits (i.e., 0/1s) of encoded text in variable "compressed_size"
-    printf("Compression Ratio: %.2f%%\n", (float)compressed_size/((float)totalNumOfCharacters*8)*100); //This line will print the compression ration in percentages, up to 2 decimals.
+    printf("Compressed: %d bits\n", compressed_size); // assuming that you store the number of bits (i.e., 0/1s) of encoded text in variable "compressed_size"
+    printf("Compression Ratio: %.2f%%\n", (float)compressed_size/((float)totalNumOfCharacters*8)*100); // This line will print the compression ration in percentages, up to 2 decimals.
     
     // Write encoded version of the text in 0/1 form into text file.
     writeEncodedToFile(inputTextFilePath, encodedTextFilePath, codeTable);
 
     // Time to free all the memory
-    freeMemory(heap, codeTable, nodeArray, binaryArray);
+    freeMemory(heap, codeTable, nodeArray);
 
   } else if (strcmp(mode, "decode") == 0)
   {
     /*----------------DECODER-----------------------*/
-    
+
     codeTableFilePath = argv[2];
     encodedTextFilePath = argv[3];
     decodedTextFilePath = argv[4];
-  
-    /*----------------------------------------------*/
-    // When decoding, you will need to:
-    // 1) read code table: you can use fscanf() function, since the code table file is well structured. Alternatively, you can also use the read statements from above as was used for reading input text file.
-    // 2) read encoded text, which is a single line consisting of 0/1 characters: This file is better be read character by character, for which you can use a code similar to getc() code above
-    // 3) write the decoded text into file: for that, you can write it into the file using a code similar to fprintf() usages exemplified above.
+
+    FILE* codeTableFile = fopen(codeTableFilePath, "r");
+
+    if (codeTableFile == NULL)
+    {
+      printf("Could not open file to write: %s\n",codeTableFilePath);
+      return -1;
+    }
+
+    // Read the codeTableFile and store each character and its frequency and binary_code to codeTable
+    char c;
+    char line[256];
+    char binary_code[256];
+    unsigned int frequency;
+    int totalNumOfCharacters = 0;
+    CodeTable* codeTable = malloc(sizeof(CodeTable) * 256);
+
+    while (fgets(line, sizeof(line), codeTableFile))
+    {
+      if ((sscanf(line, "%c\t%s\t%u", &c, binary_code, &frequency)) != 3)
+      {
+        continue;
+      }
+      
+      codeTable[c].frequency = frequency;
+      codeTable[c].binary_code = malloc(strlen(binary_code) + 1);
+      strcpy(codeTable[c].binary_code, binary_code);
+
+      totalNumOfCharacters++;
+    }
+    fclose(codeTableFile);
+
+    // Initialize nodeArray.
+    Node** nodeArray = intializeNodeArray(totalNumOfCharacters);
+
+    // Insert each character from codeTable to nodeArray.
+    int nodeCount = insertToNodeArray(nodeArray, codeTable, 256);
+
+    // Initialize Heap.
+    Heap* heap = initializeHeap(nodeCount);
+
+    // Build the min heap by inserting each node from nodeArray to Heap.
+    for (int i = 0; i < nodeCount; i++)
+    {
+      insertToHeap(heap, nodeArray[i]);
+    }
+    
+    // Build the huffman tree.
+    buildHuffmanTree(heap);
+
+    // Traverse the huffman Tree and decode the encoded file and write to decodedTextFilePath.
+    Node* root = heap->array[0];
+    traverseAndDecode(encodedTextFilePath, decodedTextFilePath, root);
+
+    // Free all the memory
+    freeMemory(heap, codeTable, nodeArray);
   }
 
   return 0;
