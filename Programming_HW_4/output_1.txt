@@ -1,0 +1,3 @@
+Original: 160 bits
+Compressed: 56 bits
+Compression Ratio: 35.00%
