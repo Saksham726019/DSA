@@ -3,10 +3,16 @@
 #include <string.h>
 #include <unistd.h>
 
+typedef struct BoardState 
+{
+    int* boardState;
+    struct BoardState* parent;
+} BoardState;
+
 // Queue struct
 typedef struct Queue
 {
-	int** boardStates;
+	BoardState** boardStates;
 	int front;
 	int tail;
 	int capacity;
@@ -31,18 +37,29 @@ Queue* initializeQueue()
 {
 	Queue* queue = malloc(sizeof(Queue));
 	queue->capacity = 10;
-	queue->boardStates = malloc(sizeof(int*) * queue->capacity);
+	queue->boardStates = malloc(sizeof(BoardState*) * queue->capacity);
 	queue->front = 0;
 	queue->tail = 0;
 
 	return queue;
 }
 
+// Function to create boardState in struct.
+BoardState* createBoardState(int* boardState, int k)
+{
+	BoardState* newBoardState = malloc(sizeof(BoardState));
+	newBoardState->boardState = malloc(sizeof(int) * (k*k));
+	memcpy(newBoardState->boardState, boardState, sizeof(int) * k*k);
+	newBoardState->parent = NULL;
+
+	return newBoardState;	
+}
+
 // Function to resize the queue.
 void resizeQueue(Queue* queue)
 {
     int newCapacity = queue->capacity * 2;
-    int** newBoardState = realloc(queue->boardStates, sizeof(int*) * newCapacity);
+    BoardState** newBoardState = realloc(queue->boardStates, sizeof(BoardState*) * newCapacity);
 
     // Check if realloc was successful. Remove before submitting.
     if (newBoardState == NULL)
@@ -66,19 +83,13 @@ void enqueue(Queue* queue, int *boardState, int k)
 		resizeQueue(queue);
 	}
 
-	queue->boardStates[queue->tail] = malloc(sizeof(int) * (k*k));
-	
-	// Copy the state of the board to the queue.
-	for (int i = 0; i < k*k; i++)
-	{
-		queue->boardStates[queue->tail][i] = boardState[i];
-	}
-
-	queue->tail += 1;
+	BoardState* newBoardState = createBoardState(boardState, k);
+	queue->boardStates[queue->tail] = newBoardState;
+	queue->tail++;
 }
 
 // Function to dequeue
-int* dequeue(Queue* queue)
+BoardState* dequeue(Queue* queue)
 {
 	if (queue->front == queue->tail)
 	{
@@ -86,8 +97,8 @@ int* dequeue(Queue* queue)
 		return NULL;
 	}
 	
-	int* boardState = queue->boardStates[queue->front];
-	queue->front += 1;
+	BoardState* boardState = queue->boardStates[queue->front];
+	queue->front++;
 
 	return boardState;
 }
@@ -166,13 +177,59 @@ int* getGoalState(int* boardState, int k)
 	return goalState;
 }
 
+// Function to enqueue the adjacent board states from the current position of empty tile
+void getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue)
+{
+	int emptyTileIndex = findEmptyTile(currentBoardState->boardState, k);
+	int row = emptyTileIndex / k;
+	int column = emptyTileIndex % k;
+
+	int directions[4][2] = {
+		{-1, 0},
+		{1, 0},
+		{0, -1},
+		{0, 1}
+	};
+
+	for (int i = 0; i < 4; i++) 
+	{
+        int newRow = row + directions[i][0];
+        int newCol = column + directions[i][1];
+
+        // Check if the move is within bounds
+        if (newRow >= 0 && newRow < k && newCol >= 0 && newCol < k) 
+		{
+            // Swap the empty tile with the new position
+            swap(&currentBoardState->boardState[emptyTileIndex], &currentBoardState->boardState[newRow * k + newCol]);
+
+            // Create a new board state and enqueue it
+            BoardState* newState = createBoardState(currentBoardState->boardState, k);
+            newState->parent = currentBoardState; // Set the parent to track the path
+
+            enqueue(queue, newState->boardState, k); // Enqueue the new state
+
+            // Undo the swap for the next iteration
+            swap(&currentBoardState->boardState[emptyTileIndex], &currentBoardState->boardState[newRow * k + newCol]);
+        }
+    }
+}
+
+void freeBoardStateStruct(BoardState* boardState)
+{
+	if (boardState != NULL)
+	{
+		free(boardState->boardState);
+		free(boardState);
+	}
+}
+
 // Function to free all dynamically allocated memory
 void freeMemory(Queue* queue, int* goalState)
 {
 	// Free each individual board state in the queue
 	for (int i = queue->front; i < queue->tail; i++)
 	{
-		free(queue->boardStates[i]);
+		freeBoardStateStruct(queue->boardStates[i]);
 	}
 	// Free the array that holds the pointers to board states
 	free(queue->boardStates);
@@ -214,13 +271,18 @@ int main(int argc, char **argv)
 
 	int initial_board[k*k];//get kxk memory to hold the initial board
 	for(int i=0;i<k*k;i++)
+	{
 		fscanf(fp_in,"%d ",&initial_board[i]);
-	printBoard(initial_board, k);//Assuming that I have a function to print the board, print it here to make sure I read the input board properly for DEBUG purposes
+	}
 	fclose(fp_in);
+
+	printf("Initial Board:\n\n");
+	printBoard(initial_board, k); // Remove later
 
 	// Get the goal state.
 	int* goalState = getGoalState(initial_board, k);
-	//printBoard(goalState, k); Remove later
+	printf("Goal State:\n\n");
+	printBoard(goalState, k); // Remove later
 
 	//////////////////////////////////
 	// do the rest to solve the puzzle
@@ -228,19 +290,22 @@ int main(int argc, char **argv)
 
 	// Initialize Queue
 	Queue* queue = initializeQueue();
-
+	
 	// Enqueue and dequeue for debugging. Remove later
-	//enqueue(queue, initial_board, k);
+	enqueue(queue, initial_board, k);
 
-	// int* dequeuedBoard = dequeue(queue);
-	// printBoard(dequeuedBoard, k);
-	// free(dequeuedBoard);
+	// Make a function for BFS.
+
+	printf("Dequeued board:\n\n");
+	BoardState* dequeuedBoard = dequeue(queue);
+	printBoard(dequeuedBoard->boardState, k);
+	freeBoardStateStruct(dequeuedBoard);
 
 	// Printing empty tile location for debugging. Remove later.
-	// int emptyTileIndex = findEmptyTile(initial_board, k);
-	// int row = emptyTileIndex / k;
-	// int colum = emptyTileIndex % k;
-	// printf("Empty Tile location: (%d, %d)\n", row, colum);
+	int emptyTileIndex = findEmptyTile(initial_board, k);
+	int row = emptyTileIndex / k;
+	int colum = emptyTileIndex % k;
+	printf("Empty Tile location: (%d, %d)\n", row, colum);
 
 	/*
 	//once you are done, you can use the code similar to the one below to print the output into file
