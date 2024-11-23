@@ -65,7 +65,7 @@ void resizeQueue(Queue* queue)
     if (newBoardState == NULL)
     {
         // If realloc fails, exit or handle the error appropriately
-        printf("Memory allocation failed during queue resizing\n");
+        printf("Malloc failed!\n");
         exit(1);  // Or handle it according to your needs
     }
 
@@ -156,7 +156,7 @@ void quickSort(int* arr, int low, int high) {
 	}
 }
 
-// Function to find the goal state.
+// Function to find the goal state with the help of quicksort.
 int* getGoalState(int* boardState, int k)
 {
 	int* goalState = malloc(sizeof(int) * (k*k));
@@ -177,7 +177,7 @@ int* getGoalState(int* boardState, int k)
 	return goalState;
 }
 
-// Function to enqueue the adjacent board states from the current position of empty tile
+// Function to enqueue the adjacent board states from the current position of empty tile. (Need to make it readable).
 void getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue)
 {
 	int emptyTileIndex = findEmptyTile(currentBoardState->boardState, k);
@@ -214,6 +214,7 @@ void getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue)
     }
 }
 
+// Function to free the BoardState Struct.
 void freeBoardStateStruct(BoardState* boardState)
 {
 	if (boardState != NULL)
@@ -226,14 +227,11 @@ void freeBoardStateStruct(BoardState* boardState)
 // Function to free all dynamically allocated memory
 void freeMemory(Queue* queue, int* goalState)
 {
-	// Free each individual board state in the queue
 	for (int i = queue->front; i < queue->tail; i++)
 	{
 		freeBoardStateStruct(queue->boardStates[i]);
 	}
-	// Free the array that holds the pointers to board states
 	free(queue->boardStates);
-	// Free the queue structure itself
 	free(queue);
 
 	free(goalState);
@@ -264,12 +262,12 @@ int main(int argc, char **argv)
 	// Read the input file and add to the initial board
 	////////////////////////////////////////////////////
 
-	getline(&line,&lineBuffSize,fp_in);//ignore the first line in file, which is a comment
-	fscanf(fp_in,"%d\n",&k);//read size of the board
-	//printf("k = %d\n", k); //make sure you read k properly for DEBUG purposes
-	getline(&line,&lineBuffSize,fp_in);//ignore the second line in file, which is a comment
+	getline(&line,&lineBuffSize,fp_in);		//ignore the first line in file, which is a comment
+	fscanf(fp_in,"%d\n",&k);				//read size of the board
+	//printf("k = %d\n", k); 				//make sure you read k properly for DEBUG purposes
+	getline(&line,&lineBuffSize,fp_in);		//ignore the second line in file, which is a comment
 
-	int initial_board[k*k];//get kxk memory to hold the initial board
+	int initial_board[k*k];					//get kxk memory to hold the initial board
 	for(int i=0;i<k*k;i++)
 	{
 		fscanf(fp_in,"%d ",&initial_board[i]);
@@ -296,16 +294,16 @@ int main(int argc, char **argv)
 
 	// Make a function for BFS.
 
-	printf("Dequeued board:\n\n");
-	BoardState* dequeuedBoard = dequeue(queue);
-	printBoard(dequeuedBoard->boardState, k);
-	freeBoardStateStruct(dequeuedBoard);
+	// printf("Dequeued board:\n\n");
+	// BoardState* dequeuedBoard = dequeue(queue);
+	// printBoard(dequeuedBoard->boardState, k);
+	// freeBoardStateStruct(dequeuedBoard);
 
-	// Printing empty tile location for debugging. Remove later.
-	int emptyTileIndex = findEmptyTile(initial_board, k);
-	int row = emptyTileIndex / k;
-	int colum = emptyTileIndex % k;
-	printf("Empty Tile location: (%d, %d)\n", row, colum);
+	// // Printing empty tile location for debugging. Remove later.
+	// int emptyTileIndex = findEmptyTile(initial_board, k);
+	// int row = emptyTileIndex / k;
+	// int colum = emptyTileIndex % k;
+	// printf("Empty Tile location: (%d, %d)\n", row, colum);
 
 	/*
 	//once you are done, you can use the code similar to the one below to print the output into file
