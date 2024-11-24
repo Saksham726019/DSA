@@ -40,8 +40,7 @@ unsigned long hashFunction(BoardState *boardState, int k, int size)
 
     for (int i = 0; i < k*k; i++) 
 	{
-        total = total + boardState->boardState[i];
-        total = total * 101;                        // Multiply the total by 101 (a prime number)
+        total = total * 31 + boardState->boardState[i];
     }
     return total % size;
 }
@@ -75,7 +74,7 @@ BoardState* createBoardState(int* boardState, int k)
 Queue* initializeQueue()
 {
 	Queue* queue = malloc(sizeof(Queue));
-	queue->capacity = 10;
+	queue->capacity = 20;
 	queue->boardStates = malloc(sizeof(BoardState*) * queue->capacity);
 	queue->front = 0;
 	queue->tail = 0;
@@ -137,12 +136,32 @@ void printQueue(Queue* queue, int k)
 
 	while (index != queue->tail)
 	{
-		printf("Board: %d\n", index);
+		printf("Queue Board: %d\n", index);
 		BoardState* currentBoardState = queue->boardStates[index];
 		printBoard(currentBoardState->boardState, k);
 
 		index++;
 	}
+}
+
+// Function to print Hash Table for debugging purpose.
+void printHashTable(HashTable* hashTable, int k)
+{
+    for (int i = 0; i < hashTable->size; i++) 
+    {
+        Node* current = hashTable->buckets[i];
+
+        if (current != NULL)
+        {
+            printf("Bucket %d:\n", i);
+            while (current != NULL) 
+            {
+                printBoard(current->boardState->boardState, k);
+                current = current->next;
+            }
+            printf("=========================\n");
+        }
+    }
 }
 
 // Function to compare two board states in order to only insert unique board state to hash table.
@@ -280,13 +299,29 @@ void freeBoardStateStruct(BoardState* boardState)
 {
 	if (boardState != NULL)
 	{
-		free(boardState->boardState);
+		if (boardState->boardState)
+		{
+			free(boardState->boardState);
+		}
 		free(boardState);
 	}
 }
 
-// Function to enqueue the adjacent board states from the current position of empty tile. (Need to make it readable) (Also, need hashtable to check for uniqueness).
-void getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue, HashTable* hashTable)
+// Function to check if we have reached the goal state.
+bool isGoalState(BoardState* currentBoardState, int* goalState, int k)
+{
+	for (int i = 0; i < k*k; i++)
+	{
+		if (currentBoardState->boardState[i] != goalState[i])
+		{
+			return false;
+		}
+	}
+	return true;	
+}
+
+// Function to enqueue the adjacent board states from the current position of empty tile. Also checks for goal state (Need to make it readable) .
+BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue, HashTable* hashTable, int* goalState)
 {
 	int emptyTileIndex = findEmptyTile(currentBoardState->boardState, k);
 	int row = emptyTileIndex / k;
@@ -308,6 +343,7 @@ void getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue, 
         if (newRow >= 0 && newRow < k && newCol >= 0 && newCol < k) 
 		{
 			BoardState* newBoardState = createBoardState(currentBoardState->boardState, k);
+
             // Swap the empty tile with the new position
             swap(&(newBoardState->boardState[emptyTileIndex]), &(newBoardState->boardState[newRow * k + newCol]));
 
@@ -316,114 +352,39 @@ void getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue, 
 				newBoardState->parent = currentBoardState; // Set the parent to track the path
 				enqueue(queue, newBoardState); // Enqueue the new state
 				insertToHashTable(hashTable, newBoardState, k);
+				
+				if (isGoalState(newBoardState, goalState, k))
+				{
+					printf("Goal State reached!\n");
+					printBoard(newBoardState->boardState, k);
+					return newBoardState;
+				}
+				
 			} else
 			{
 				freeBoardStateStruct(newBoardState);
 			}
         }
     }
-	printf("Queue after getting its adjacent:\n");
-	printQueue(queue, k);
-}
+	// printf("Queue after getting its adjacent:\n");
+	// printQueue(queue, k);
 
-// Function to check if we have reached the goal state.
-bool isGoalState(BoardState* currentBoardState, int* goalState, int k)
-{
-	for (int i = 0; i < k*k; i++)
-	{
-		if (currentBoardState->boardState[i] != goalState[i])
-		{
-			return false;
-		}
-	}
-	return true;	
+	return NULL;
 }
 
 // BFS function to get the shortest path. (Incomplete. First complete the hashtable)
 BoardState* BFSTraversal(Queue* queue, HashTable* hashTable, int* goalState, int k)
 {
-	while (queue->front != queue->tail)
+	BoardState* solutionState = NULL;	
+	while (queue->front != queue->tail && solutionState == NULL)
 	{
 		BoardState* currentBoardState = dequeue(queue);
-
-		// Check if it's the goal state.
-		if (isGoalState(currentBoardState, goalState, k))
-		{
-			printf("Goal State reached!\n");
-			printBoard(currentBoardState->boardState, k);
-			return currentBoardState;
-		}
-
-		if (isUniqueBoard(hashTable, currentBoardState, k))
-		{
-			insertToHashTable(hashTable, currentBoardState, k);
-		}
 		
-		getAdjacentBoardStates(currentBoardState, k, queue, hashTable);
+		solutionState = getAdjacentBoardStates(currentBoardState, k, queue, hashTable, goalState);
 	}
 
-	return NULL;
+	return solutionState;
 }
-
-// Function to free the hash table
-void freeHashTable(HashTable* hashTable) 
-{
-    for (int i = 0; i < hashTable->size; i++) 
-    {
-        Node* current = hashTable->buckets[i];
-        while (current != NULL) 
-        {
-            Node* temp = current;
-            current = current->next;
-            freeBoardStateStruct(temp->boardState); // Free the BoardState as well
-            free(temp); // Free the Node itself
-        }
-    }
-    free(hashTable->buckets);
-    free(hashTable);
-}
-
-void freePath(BoardState* goalState)
-{
-    BoardState* current = goalState;
-    while (current != NULL)
-    {
-        BoardState* parent = current->parent;
-        freeBoardStateStruct(current);
-        current = parent;
-    }
-}
-
-// Function to free all dynamically allocated memory
-void freeMemory(Queue* queue, HashTable* hashTable, int* goalState, BoardState* solutionState)
-{
-    if (solutionState != NULL)
-    {
-        // Free the solution path first
-        freePath(solutionState);
-    }
-    else
-    {
-        // If no solution was found, free all states in the queue
-        for (int i = queue->front; i < queue->tail; i++)
-        {
-            if (queue->boardStates[i] != NULL) {
-                freeBoardStateStruct(queue->boardStates[i]);
-            }
-        }
-    }
-    
-    // Free queue structure
-    free(queue->boardStates);
-    free(queue);
-
-    // Free hash table (nodes only, BoardStates already freed)
-    freeHashTable(hashTable);
-
-    // Free goal state
-    free(goalState);
-}
-
 
 int main(int argc, char **argv)
 {
@@ -450,12 +411,11 @@ int main(int argc, char **argv)
 	// Read the input file and add to the initial board
 	////////////////////////////////////////////////////
 
-	getline(&line,&lineBuffSize,fp_in);		//ignore the first line in file, which is a comment
-	fscanf(fp_in,"%d\n",&k);				//read size of the board
-	//printf("k = %d\n", k); 				//make sure you read k properly for DEBUG purposes
-	getline(&line,&lineBuffSize,fp_in);		//ignore the second line in file, which is a comment
+	getline(&line,&lineBuffSize,fp_in);		// ignore the first line in file, which is a comment
+	fscanf(fp_in,"%d\n",&k);				// read size of the board
+	getline(&line,&lineBuffSize,fp_in);		// ignore the second line in file, which is a comment
 
-	int initial_board[k*k];					//get kxk memory to hold the initial board
+	int initial_board[k*k];					// get kxk memory to hold the initial board
 	for(int i=0;i<k*k;i++)
 	{
 		fscanf(fp_in,"%d ",&initial_board[i]);
@@ -480,18 +440,41 @@ int main(int argc, char **argv)
 	// Initialize hash table to store unique board states.
 	HashTable* hashTable = initializeHashTable();
 	
+	// Insert the initial board to queue and hash table.
 	BoardState* initialBoardState = createBoardState(initial_board, k);
 	enqueue(queue, initialBoardState);
+	insertToHashTable(hashTable, initialBoardState, k);
 
 	// Call function for BFS.
 	BoardState* solutionBoardState = BFSTraversal(queue, hashTable, goalState, k);
 
-	/*
+	// printHashTable(hashTable, k);
+	// printQueue(queue, k);
+
+	
 	//once you are done, you can use the code similar to the one below to print the output into file
 	//if the puzzle is NOT solvable use something as follows
-	fprintf(fp_out, "#moves\n");
-	fprintf(fp_out, "no solution\n");
-	
+
+	int numberOfMoves = 0;
+	if (solutionBoardState == NULL)
+	{
+		fprintf(fp_out, "#moves\n");
+		fprintf(fp_out, "no solution\n");
+	} else
+	{
+		fprintf(fp_out, "#moves");
+
+		printf("Parent-Child Heirarchy\n");
+
+		while (solutionBoardState != NULL)
+		{
+			numberOfMoves++;
+			printBoard(solutionBoardState->boardState, k);
+			solutionBoardState = solutionBoardState->parent;
+		}
+	}
+
+	/*
 	//if it is solvable, then use something as follows:
 	fprintf(fp_out, "#moves\n");
 	//probably within a loop, or however you stored proper moves, print them one by one by leaving a space between moves, as below
@@ -500,9 +483,40 @@ int main(int argc, char **argv)
 	*/
 	fclose(fp_out);
 
-	freeMemory(queue, hashTable, goalState, solutionBoardState);
+	//////////////////////////////////
+	// Free all the memory allocated
+	//////////////////////////////////
+
 	free(line);
+	free(goalState);
+
+	// Free all BoardStates in the queue
+    for (int i = 0; i < queue->tail; i++) {
+        if (queue->boardStates[i] != NULL) 
+		{
+            freeBoardStateStruct(queue->boardStates[i]);
+			queue->boardStates[i] = NULL;
+        }
+    }
+
+    // Free the queue structure itself
+    free(queue->boardStates);
+    free(queue);
+	
+    // Free all elements in the hash table
+    for (int i = 0; i < hashTable->size; i++) 
+	{
+        Node* current = hashTable->buckets[i];
+
+        while (current != NULL) 
+		{
+            Node* temp = current;
+            current = current->next;
+            free(temp);
+        }
+    }
+    free(hashTable->buckets);
+    free(hashTable);
 
 	return 0;
-
 }
