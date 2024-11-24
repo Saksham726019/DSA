@@ -74,7 +74,7 @@ BoardState* createBoardState(int* boardState, int k)
 Queue* initializeQueue()
 {
 	Queue* queue = malloc(sizeof(Queue));
-	queue->capacity = 20;
+	queue->capacity = 100;
 	queue->boardStates = malloc(sizeof(BoardState*) * queue->capacity);
 	queue->front = 0;
 	queue->tail = 0;
@@ -197,7 +197,7 @@ bool isUniqueBoard(HashTable* hashTable, BoardState* boardState, int k)
 HashTable* initializeHashTable()
 {
 	HashTable* hashTable = malloc(sizeof(HashTable));
-	hashTable->size = 100;
+	hashTable->size = 1000;
 	hashTable->buckets = malloc(sizeof(Node*) * hashTable->size);
 
 	for (int i = 0; i < hashTable->size; i++)
@@ -366,8 +366,8 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 			}
         }
     }
-	printf("Queue after getting its adjacent:\n");
-	printQueue(queue, k);
+	// printf("Queue after getting its adjacent:\n");
+	// printQueue(queue, k);
 
 	return NULL;
 }
@@ -385,6 +385,10 @@ BoardState* BFSTraversal(Queue* queue, HashTable* hashTable, int* goalState, int
 
 	return solutionState;
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Maybe change to circular queue. Ask TA's on how to know it's unsolvable
+///////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv)
 {
@@ -422,13 +426,13 @@ int main(int argc, char **argv)
 	}
 	fclose(fp_in);
 
-	printf("Initial Board:\n\n");
-	printBoard(initial_board, k); // Remove later
+	// printf("Initial Board:\n\n");
+	// printBoard(initial_board, k); // Remove later
 
 	// Get the goal state.
 	int* goalState = getGoalState(initial_board, k);
-	printf("Goal State:\n\n");
-	printBoard(goalState, k); // Remove later
+	// printf("Goal State:\n\n");
+	// printBoard(goalState, k); // Remove later
 
 	//////////////////////////////////
 	// do the rest to solve the puzzle
@@ -449,7 +453,7 @@ int main(int argc, char **argv)
 	BoardState* solutionBoardState = BFSTraversal(queue, hashTable, goalState, k);
 
 	// printHashTable(hashTable, k);
-	printQueue(queue, k);
+	// printQueue(queue, k);
 
 	
 	//once you are done, you can use the code similar to the one below to print the output into file
