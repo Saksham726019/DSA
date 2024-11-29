@@ -382,7 +382,7 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 	return NULL;
 }
 
-// BFS function to get the shortest path. (Incomplete. First complete the hashtable)
+// BFS traversal to get the shortest path to solve the puzzle.
 BoardState* BFSTraversal(Queue* queue, HashTable* hashTable, int* goalState, int k)
 {
 	BoardState* solutionState = NULL;	
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
     {
         fprintf(fp_out, "#moves\n");
         fprintf(fp_out, "no solution\n");
-		
+
         fclose(fp_out);
         free(line);
 
@@ -485,35 +485,48 @@ int main(int argc, char **argv)
 	enqueue(queue, initialBoardState);
 	insertToHashTable(hashTable, initialBoardState, k);
 
-	// Call function for BFS.
+	// Start the BFS.
 	BoardState* solutionBoardState = BFSTraversal(queue, hashTable, goalState, k);
 
-	printHashTable(hashTable, k);
+	// Printing for debugging. Remove later.
 	printQueue(queue, k);
+	printHashTable(hashTable, k);
 
-	
 	//once you are done, you can use the code similar to the one below to print the output into file
 	//if the puzzle is NOT solvable use something as follows
 
-	int numberOfMoves = 0;
-	
-    fprintf(fp_out, "#moves");
 	printf("Parent-Child Heirarchy\n");
+	int numberOfMoves = 0;
+	int moves[100];
+	int index = 0;
 
     while (solutionBoardState != NULL)
     {
-        numberOfMoves++;
-        printBoard(solutionBoardState->boardState, k);
+		printBoard(solutionBoardState->boardState, k);
+		int emptyTileIndex = findEmptyTile(solutionBoardState->boardState, k);
+
         solutionBoardState = solutionBoardState->parent;
+		if (solutionBoardState != NULL)
+		{
+			moves[index] = solutionBoardState->boardState[emptyTileIndex];		// Here, we will get which number swapped with the empty tile.
+			index++;
+		}
+
+		numberOfMoves++;
     }
 
-	/*
-	//if it is solvable, then use something as follows:
+	printf("Number of moves: %d\n", numberOfMoves);
+	printf("Moves: ");
+	for (int i = numberOfMoves - 2; i >= 0; i--)
+	{
+		printf("%d ", moves[i]);
+	}
+
 	fprintf(fp_out, "#moves\n");
-	//probably within a loop, or however you stored proper moves, print them one by one by leaving a space between moves, as below
-	for(int i=0;i<numberOfMoves;i++)
-		fprintf(fp_out, "%d ", move[i]);
-	*/
+	for(int i = numberOfMoves - 2; i >= 0; i--)
+	{
+		fprintf(fp_out, "%d ", moves[i]);
+	}
 	fclose(fp_out);
 
 	//////////////////////////////////
@@ -523,7 +536,7 @@ int main(int argc, char **argv)
 	free(line);
 	free(goalState);
 
-    // Free all elements in the hash table
+    // Free all elements in the hash table including boardstates.
     for (int i = 0; i < hashTable->size; i++) 
 	{
         Node* current = hashTable->buckets[i];
@@ -543,7 +556,7 @@ int main(int argc, char **argv)
     free(hashTable->buckets);
     free(hashTable);
 
-    // Free all BoardStates in the queue
+    // Free all nodes in the queue linked-list
     Node* current = queue->front;
     while (current != NULL)
     {
@@ -552,7 +565,7 @@ int main(int argc, char **argv)
         free(temp);
     }
     
-    // Free the queue structure itself
+    // Free the queue struct
     free(queue);
 
 	return 0;
