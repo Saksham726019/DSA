@@ -10,21 +10,19 @@ typedef struct BoardState
     struct BoardState* parent;
 } BoardState;
 
-// Queue struct
-typedef struct Queue
-{
-	BoardState** boardStates;
-	int front;
-	int tail;
-	int capacity;
-} Queue;
-
 // Node struct
 typedef struct Node
 {
 	BoardState* boardState;
 	struct Node* next;
 } Node;
+
+// Queue struct
+typedef struct Queue
+{
+	Node* front;
+	Node* tail;
+} Queue;
 
 // Hash Table struct to store unique board states.
 typedef struct HashTable
@@ -74,57 +72,68 @@ BoardState* createBoardState(int* boardState, int k)
 Queue* initializeQueue()
 {
 	Queue* queue = malloc(sizeof(Queue));
-	queue->capacity = 100;
-	queue->boardStates = malloc(sizeof(BoardState*) * queue->capacity);
-	queue->front = 0;
-	queue->tail = 0;
+	queue->front = NULL;
+	queue->tail = NULL;
 
 	return queue;
 }
 
-// Function to resize the queue.
-void resizeQueue(Queue* queue)
-{
-    int newCapacity = queue->capacity * 2;
-    BoardState** newBoardState = realloc(queue->boardStates, sizeof(BoardState*) * newCapacity);
+// // Function to resize the queue. We don't need this I think.
+// void resizeQueue(Queue* queue)
+// {
+//     int newCapacity = queue->capacity * 2;
+//     BoardState** newBoardState = realloc(queue->boardStates, sizeof(BoardState*) * newCapacity);
 
-    // Check if realloc was successful. Remove before submitting.
-    if (newBoardState == NULL)
-    {
-        // If realloc fails, exit or handle the error appropriately
-        printf("Malloc failed!\n");
-        exit(1);  // Or handle it according to your needs
-    }
+//     // Check if realloc was successful. Remove before submitting.
+//     if (newBoardState == NULL)
+//     {
+//         // If realloc fails, exit or handle the error appropriately
+//         printf("Malloc failed!\n");
+//         exit(1);  // Or handle it according to your needs
+//     }
 
-    queue->boardStates = newBoardState;
-    queue->capacity = newCapacity;
-}
+//     queue->boardStates = newBoardState;
+//     queue->capacity = newCapacity;
+// }
 
 // Function to insert to queue.
 void enqueue(Queue* queue, BoardState* boardState)
 {
-	if (queue->tail == queue->capacity)
-	{
-		// Print statement for debugging. Remove later
-		printf("Queue is full. Resizing...\n");
-		resizeQueue(queue);
-	}
+    Node* newNode = malloc(sizeof(Node));
+    newNode->boardState = boardState;
+    newNode->next = NULL;
 
-	queue->boardStates[queue->tail] = boardState;
-	queue->tail++;
+	if (queue->tail == NULL)
+    {
+        queue->front = newNode;
+        queue->tail = newNode;
+    } else
+    {
+        queue->tail->next = newNode;
+        queue->tail = newNode;
+    }
 }
 
 // Function to dequeue
 BoardState* dequeue(Queue* queue)
 {
-	if (queue->front == queue->tail)
+	if (queue->front == NULL)
 	{
 		printf("Queue is empty!\n");
 		return NULL;
 	}
 	
-	BoardState* boardState = queue->boardStates[queue->front];
-	queue->front++;
+	Node* tempNode = queue->front;
+    BoardState* boardState = tempNode->boardState;
+
+    queue->front = queue->front->next;
+
+    if (queue->front == NULL)
+    {
+        queue->tail = NULL;
+    }
+    
+    free(tempNode);
 
 	return boardState;
 }
@@ -133,15 +142,16 @@ BoardState* dequeue(Queue* queue)
 void printQueue(Queue* queue, int k)
 {
 	int index = 0;
+    Node* current = queue->front;
 
-	while (index != queue->tail)
+	while (current != NULL)
 	{
 		printf("Queue Board: %d\n", index);
-		BoardState* currentBoardState = queue->boardStates[index];
-		printBoard(currentBoardState->boardState, k);
-
+		printBoard(current->boardState->boardState, k);
+        current = current->next;
 		index++;
 	}
+    printf("\n");
 }
 
 // Function to print Hash Table for debugging purpose.
@@ -190,14 +200,14 @@ bool isUniqueBoard(HashTable* hashTable, BoardState* boardState, int k)
 
         current = current->next;
     }
-    return true;  // The board is unique
+    return true;
 }
 
 // Function to initialize Hash table.
 HashTable* initializeHashTable()
 {
 	HashTable* hashTable = malloc(sizeof(HashTable));
-	hashTable->size = 1000;
+	hashTable->size = 1009;
 	hashTable->buckets = malloc(sizeof(Node*) * hashTable->size);
 
 	for (int i = 0; i < hashTable->size; i++)
@@ -376,19 +386,32 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 BoardState* BFSTraversal(Queue* queue, HashTable* hashTable, int* goalState, int k)
 {
 	BoardState* solutionState = NULL;	
-	while (queue->front != queue->tail && solutionState == NULL)
+	while (queue->front != NULL && solutionState == NULL)
 	{
 		BoardState* currentBoardState = dequeue(queue);
-		
 		solutionState = getAdjacentBoardStates(currentBoardState, k, queue, hashTable, goalState);
 	}
-
 	return solutionState;
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Maybe change to circular queue. Ask TA's on how to know it's unsolvable
-///////////////////////////////////////////////////////////////////////////
+// Function to check if the puzzle is solvable or not. Inversion technique.
+bool isSolvable(int boardState[], int k)
+{
+    int inversionCount = 0;
+
+    for (int i = 0; i < k*k - 1; i++)
+    {
+        for (int j = i+1; j < k*k; j++)
+        {
+            if ((boardState[i] != 0 && boardState[j] != 0) && (boardState[i] > boardState[j]))
+            {
+                inversionCount++;
+            }
+        }
+    }
+
+    return (inversionCount % 2 == 0);    
+}
 
 int main(int argc, char **argv)
 {
@@ -420,19 +443,32 @@ int main(int argc, char **argv)
 	getline(&line,&lineBuffSize,fp_in);		// ignore the second line in file, which is a comment
 
 	int initial_board[k*k];					// get kxk memory to hold the initial board
+
 	for(int i=0;i<k*k;i++)
 	{
 		fscanf(fp_in,"%d ",&initial_board[i]);
 	}
 	fclose(fp_in);
 
-	// printf("Initial Board:\n\n");
-	// printBoard(initial_board, k); // Remove later
+	printf("Initial Board:\n\n");
+	printBoard(initial_board, k); // Remove later
+
+    // Check if this puzzle is solvable or not
+    if (!isSolvable(initial_board, k))
+    {
+        fprintf(fp_out, "#moves\n");
+        fprintf(fp_out, "no solution\n");
+		
+        fclose(fp_out);
+        free(line);
+
+        return 0;
+    }
 
 	// Get the goal state.
 	int* goalState = getGoalState(initial_board, k);
-	// printf("Goal State:\n\n");
-	// printBoard(goalState, k); // Remove later
+	printf("Goal State:\n\n");
+	printBoard(goalState, k); // Remove later
 
 	//////////////////////////////////
 	// do the rest to solve the puzzle
@@ -452,31 +488,24 @@ int main(int argc, char **argv)
 	// Call function for BFS.
 	BoardState* solutionBoardState = BFSTraversal(queue, hashTable, goalState, k);
 
-	// printHashTable(hashTable, k);
-	// printQueue(queue, k);
+	printHashTable(hashTable, k);
+	printQueue(queue, k);
 
 	
 	//once you are done, you can use the code similar to the one below to print the output into file
 	//if the puzzle is NOT solvable use something as follows
 
 	int numberOfMoves = 0;
-	if (solutionBoardState == NULL)
-	{
-		fprintf(fp_out, "#moves\n");
-		fprintf(fp_out, "no solution\n");
-	} else
-	{
-		fprintf(fp_out, "#moves");
+	
+    fprintf(fp_out, "#moves");
+	printf("Parent-Child Heirarchy\n");
 
-		printf("Parent-Child Heirarchy\n");
-
-		while (solutionBoardState != NULL)
-		{
-			numberOfMoves++;
-			printBoard(solutionBoardState->boardState, k);
-			solutionBoardState = solutionBoardState->parent;
-		}
-	}
+    while (solutionBoardState != NULL)
+    {
+        numberOfMoves++;
+        printBoard(solutionBoardState->boardState, k);
+        solutionBoardState = solutionBoardState->parent;
+    }
 
 	/*
 	//if it is solvable, then use something as follows:
@@ -494,19 +523,6 @@ int main(int argc, char **argv)
 	free(line);
 	free(goalState);
 
-	// Free all BoardStates in the queue
-    for (int i = 0; i < queue->tail; i++) {
-        if (queue->boardStates[i] != NULL) 
-		{
-            freeBoardStateStruct(queue->boardStates[i]);
-			queue->boardStates[i] = NULL;
-        }
-    }
-
-    // Free the queue structure itself
-    free(queue->boardStates);
-    free(queue);
-	
     // Free all elements in the hash table
     for (int i = 0; i < hashTable->size; i++) 
 	{
@@ -515,12 +531,29 @@ int main(int argc, char **argv)
         while (current != NULL) 
 		{
             Node* temp = current;
+            if (temp->boardState != NULL)
+            {
+                freeBoardStateStruct(temp->boardState);
+                temp->boardState = NULL;
+            }
             current = current->next;
             free(temp);
         }
     }
     free(hashTable->buckets);
     free(hashTable);
+
+    // Free all BoardStates in the queue
+    Node* current = queue->front;
+    while (current != NULL)
+    {
+        Node* temp = current;
+        current = current->next;
+        free(temp);
+    }
+    
+    // Free the queue structure itself
+    free(queue);
 
 	return 0;
 }
