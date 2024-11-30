@@ -67,9 +67,9 @@ Queue* initializeQueue()
 // Function to insert to queue.
 void enqueue(Queue* queue, BoardState* boardState)
 {
-    Node* newNode = malloc(sizeof(Node));
-    newNode->boardState = boardState;
-    newNode->next = NULL;
+	Node* newNode = malloc(sizeof(Node));
+	newNode->boardState = boardState;
+	newNode->next = NULL;
 
 	if (queue->tail == NULL)
     {
@@ -349,7 +349,7 @@ int main(int argc, char **argv)
 	////////////////////////////////////////////////////
 
 	getline(&line, &lineBuffSize, fp_in);		// ignore the first line in file, which is a comment
-	fscanf(fp_in, "%d\n", &k);				// read size of the board
+	fscanf(fp_in, "%d\n", &k);					// read size of the board
 	getline(&line, &lineBuffSize, fp_in);		// ignore the second line in file, which is a comment
 
 	int initial_board[k*k];					// get kxk memory to hold the initial board
