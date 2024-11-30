@@ -234,53 +234,17 @@ void swap(int* a, int* b)
     *b = temp;
 }
 
-// Partition function.
-int partition(int* arr, int low, int high) {
-	int mid = low + (high - low)/2;
-	int pivot = arr[mid];  // Taking middle element as the pivot.
-	int i = low - 1;
-
-	swap(&arr[mid], &arr[high]);    // Swapping the pivot with the last element.
-
-	for (int j = low; j < high; j++) 
-	{
-		if (arr[j] != 0 && (arr[j] < pivot || (arr[j] == pivot))) 
-		{
-			i++;
-			swap(&arr[i], &arr[j]);
-		}
-	}
-
-	swap(&arr[i + 1], &arr[high]);  // Putting the pivot in the middle.
-	return i + 1;   // Returning pivot's index
-}
-
-// Quicksort function.
-void quickSort(int* arr, int low, int high) {
-	if (low < high) 
-	{
-		int pivotIndex = partition(arr, low, high);
-		quickSort(arr, low, pivotIndex - 1);
-		quickSort(arr, pivotIndex + 1, high);
-	}
-}
-
 // Function to find the goal state with the help of quicksort.
 int* getGoalState(int boardState[], int k)
 {
 	int* goalState = malloc(sizeof(int) * (k*k));
 	int index = 0;
 
-	for (int i = 0; i < k*k; i++)
+	for (int i = 0; i < k*k - 1; i++)
 	{
-		if (boardState[i] != 0)
-		{
-			goalState[index] = boardState[i];
-			index++;
-		}	
+		goalState[i] = i + 1;
 	}
 
-	quickSort(goalState, 0, (k*k -2));
 	goalState[k*k - 1] = 0;
 
 	return goalState;
