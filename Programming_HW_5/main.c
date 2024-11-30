@@ -445,9 +445,9 @@ int main(int argc, char **argv)
 
 	int initial_board[k*k];					// get kxk memory to hold the initial board
 
-	for(int i=0;i<k*k;i++)
+	for(int i = 0; i < k*k; i++)
 	{
-		fscanf(fp_in,"%d ",&initial_board[i]);
+		fscanf(fp_in, "%d ", &initial_board[i]);
 	}
 	fclose(fp_in);
 
@@ -492,9 +492,6 @@ int main(int argc, char **argv)
 	// Printing for debugging. Remove later.
 	// printQueue(queue, k);
 	// printHashTable(hashTable, k);
-
-	//once you are done, you can use the code similar to the one below to print the output into file
-	//if the puzzle is NOT solvable use something as follows
 
 	// printf("Child to Parent Heirarchy\n");
 	int numberOfMoves = 0;
