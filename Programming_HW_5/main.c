@@ -43,7 +43,7 @@ unsigned long hashFunction(BoardState *boardState, int k, int size)
     return total % size;
 }
 
-// Function to print the state of the board.
+// Function to print the state of the board. Remove later.
 void printBoard(int *board, int k)
 {
 	for (int i = 0; i < k; i++)
@@ -77,24 +77,6 @@ Queue* initializeQueue()
 
 	return queue;
 }
-
-// // Function to resize the queue. We don't need this I think.
-// void resizeQueue(Queue* queue)
-// {
-//     int newCapacity = queue->capacity * 2;
-//     BoardState** newBoardState = realloc(queue->boardStates, sizeof(BoardState*) * newCapacity);
-
-//     // Check if realloc was successful. Remove before submitting.
-//     if (newBoardState == NULL)
-//     {
-//         // If realloc fails, exit or handle the error appropriately
-//         printf("Malloc failed!\n");
-//         exit(1);  // Or handle it according to your needs
-//     }
-
-//     queue->boardStates = newBoardState;
-//     queue->capacity = newCapacity;
-// }
 
 // Function to insert to queue.
 void enqueue(Queue* queue, BoardState* boardState)
@@ -138,7 +120,7 @@ BoardState* dequeue(Queue* queue)
 	return boardState;
 }
 
-// Function to print queue for debugging. Remove later.
+// Function to print queue for debugging. Well, it's incorrect as front is not the 0th index after dequeue. Remove later.
 void printQueue(Queue* queue, int k)
 {
 	int index = 0;
@@ -154,7 +136,7 @@ void printQueue(Queue* queue, int k)
     printf("\n");
 }
 
-// Function to print Hash Table for debugging purpose.
+// Function to print Hash Table for debugging purpose. Remove later.
 void printHashTable(HashTable* hashTable, int k)
 {
     for (int i = 0; i < hashTable->size; i++) 
@@ -244,7 +226,7 @@ int findEmptyTile(int* boardState, int k)
 	return -1;	
 }
 
-// Function to swap two items
+// Function to swap two items.
 void swap(int* a, int* b) 
 {
     int temp = *a;
@@ -284,7 +266,7 @@ void quickSort(int* arr, int low, int high) {
 }
 
 // Function to find the goal state with the help of quicksort.
-int* getGoalState(int* boardState, int k)
+int* getGoalState(int boardState[], int k)
 {
 	int* goalState = malloc(sizeof(int) * (k*k));
 	int index = 0;
@@ -365,8 +347,7 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 				
 				if (isGoalState(newBoardState, goalState, k))
 				{
-					printf("Goal State reached!\n");
-					printBoard(newBoardState->boardState, k);
+					//printf("=====================Goal State reached!====================\n\n");
 					return newBoardState;
 				}
 				
@@ -398,19 +379,39 @@ BoardState* BFSTraversal(Queue* queue, HashTable* hashTable, int* goalState, int
 bool isSolvable(int boardState[], int k)
 {
     int inversionCount = 0;
+	int emptyTileIndex = findEmptyTile(boardState, k);
+	int row = emptyTileIndex / k;
+	int column = emptyTileIndex % k;
 
     for (int i = 0; i < k*k - 1; i++)
     {
         for (int j = i+1; j < k*k; j++)
         {
-            if ((boardState[i] != 0 && boardState[j] != 0) && (boardState[i] > boardState[j]))
+            if (boardState[i] != 0 && boardState[j] != 0 && boardState[i] > boardState[j])
             {
                 inversionCount++;
             }
         }
     }
 
-    return (inversionCount % 2 == 0);    
+	// printf("Row: %d\n", row);
+	// printf("Inversion count: %d\n\n", inversionCount);
+
+	if (row % 2 == 1)		// If grid is odd
+	{
+		return (inversionCount % 2 == 0); 
+	} else		// If grid is even
+	{
+		// 1. Odd inversion and empty tile is on even row from bottom.
+		// 2. Even inversion and empty tile is on odd row from bottom.
+		if ((k - row) % 2 == 0)
+		{
+			return (inversionCount % 2 == 1);
+		} else
+		{
+			return(inversionCount % 2 == 0);
+		}
+	}
 }
 
 int main(int argc, char **argv)
@@ -450,8 +451,8 @@ int main(int argc, char **argv)
 	}
 	fclose(fp_in);
 
-	printf("Initial Board:\n\n");
-	printBoard(initial_board, k); // Remove later
+	// printf("Initial Board:\n\n");
+	// printBoard(initial_board, k); // Remove later
 
     // Check if this puzzle is solvable or not
     if (!isSolvable(initial_board, k))
@@ -465,14 +466,14 @@ int main(int argc, char **argv)
         return 0;
     }
 
-	// Get the goal state.
-	int* goalState = getGoalState(initial_board, k);
-	printf("Goal State:\n\n");
-	printBoard(goalState, k); // Remove later
-
 	//////////////////////////////////
 	// do the rest to solve the puzzle
 	//////////////////////////////////
+
+	// Get the goal state.
+	int* goalState = getGoalState(initial_board, k);
+	// printf("Goal State:\n\n");
+	// printBoard(goalState, k); // Remove later
 
 	// Initialize Queue
 	Queue* queue = initializeQueue();
@@ -489,20 +490,20 @@ int main(int argc, char **argv)
 	BoardState* solutionBoardState = BFSTraversal(queue, hashTable, goalState, k);
 
 	// Printing for debugging. Remove later.
-	printQueue(queue, k);
-	printHashTable(hashTable, k);
+	// printQueue(queue, k);
+	// printHashTable(hashTable, k);
 
 	//once you are done, you can use the code similar to the one below to print the output into file
 	//if the puzzle is NOT solvable use something as follows
 
-	printf("Parent-Child Heirarchy\n");
+	// printf("Child to Parent Heirarchy\n");
 	int numberOfMoves = 0;
 	int moves[100];
 	int index = 0;
 
     while (solutionBoardState != NULL)
     {
-		printBoard(solutionBoardState->boardState, k);
+		// printBoard(solutionBoardState->boardState, k);
 		int emptyTileIndex = findEmptyTile(solutionBoardState->boardState, k);
 
         solutionBoardState = solutionBoardState->parent;
@@ -515,12 +516,12 @@ int main(int argc, char **argv)
 		numberOfMoves++;
     }
 
-	printf("Number of moves: %d\n", numberOfMoves);
-	printf("Moves: ");
-	for (int i = numberOfMoves - 2; i >= 0; i--)
-	{
-		printf("%d ", moves[i]);
-	}
+	// printf("Number of moves: %d\n", numberOfMoves - 1);
+	// printf("Moves: ");
+	// for (int i = numberOfMoves - 2; i >= 0; i--)
+	// {
+	// 	printf("%d ", moves[i]);
+	// }
 
 	fprintf(fp_out, "#moves\n");
 	for(int i = numberOfMoves - 2; i >= 0; i--)
