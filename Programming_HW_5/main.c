@@ -115,19 +115,9 @@ bool isUniqueBoard(HashTable* hashTable, BoardState* boardState, int k)
     
     while (current != NULL)
     {
-        bool match = true;
-        for (int i = 0; i < k * k; i++) 
-        {
-            if (current->boardState->boardState[i] != boardState->boardState[i]) 
-            {
-                match = false;
-                break;
-            }
-        }
-
-        if (match)
+		if (memcmp(current->boardState->boardState, boardState->boardState, sizeof(int) * k*k) == 0)
 		{
-            return false;
+			return false;
 		}
 
         current = current->next;
