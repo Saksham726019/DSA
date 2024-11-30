@@ -206,14 +206,7 @@ void freeBoardStateStruct(BoardState* boardState)
 // Function to check if we have reached the goal state.
 bool isGoalState(BoardState* currentBoardState, int* goalState, int k)
 {
-	for (int i = 0; i < k*k; i++)
-	{
-		if (currentBoardState->boardState[i] != goalState[i])
-		{
-			return false;
-		}
-	}
-	return true;	
+	return memcmp(currentBoardState->boardState, goalState, sizeof(int) * k*k) == 0;
 }
 
 // Function to enqueue the adjacent board states from the current position of empty tile. Also checks for goal state (Need to make it readable) .
@@ -295,7 +288,7 @@ bool isSolvable(int boardState[], int k)
         }
     }
 
-	if (row % 2 == 1)		// If grid is odd
+	if (k % 2 == 1)		// If grid is odd
 	{
 		return (inversionCount % 2 == 0); 
 	} else		// If grid is even
@@ -402,19 +395,20 @@ int main(int argc, char **argv)
 	int moves[100];
 	int index = 0;
 
-    while (solutionBoardState != NULL)
-    {
-		int emptyTileIndex = findEmptyTile(solutionBoardState->boardState, k);
-
-        solutionBoardState = solutionBoardState->parent;
-		if (solutionBoardState != NULL)
+	while (solutionBoardState != NULL) 
+	{
+		if (solutionBoardState->parent != NULL) 
 		{
-			moves[index] = solutionBoardState->boardState[emptyTileIndex];		// Here, we will get which number swapped with the empty tile.
-			index++;
+			// Get the index of the empty tile
+			int emptyTileIndex = findEmptyTile(solutionBoardState->boardState, k);
+
+			// Store the number that swapped with the empty tile
+			moves[index++] = solutionBoardState->parent->boardState[emptyTileIndex];
 		}
 
+		solutionBoardState = solutionBoardState->parent;
 		numberOfMoves++;
-    }
+	}
 
 	// Write the moves to output file.
 	fprintf(fp_out, "#moves\n");
