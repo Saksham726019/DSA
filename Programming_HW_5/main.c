@@ -43,20 +43,6 @@ unsigned long hashFunction(BoardState *boardState, int k, int size)
     return total % size;
 }
 
-// Function to print the state of the board. Remove later.
-void printBoard(int *board, int k)
-{
-	for (int i = 0; i < k; i++)
-	{
-		for (int j = 0; j < k; j++)
-		{
-			printf("%d ", board[i * k + j]);
-		}
-		printf("\n");		
-	}
-	printf("\n\n");
-}
-
 // Function to create boardState in struct.
 BoardState* createBoardState(int* boardState, int k)
 {
@@ -118,42 +104,6 @@ BoardState* dequeue(Queue* queue)
     free(tempNode);
 
 	return boardState;
-}
-
-// Function to print queue for debugging. Well, it's incorrect as front is not the 0th index after dequeue. Remove later.
-void printQueue(Queue* queue, int k)
-{
-	int index = 0;
-    Node* current = queue->front;
-
-	while (current != NULL)
-	{
-		printf("Queue Board: %d\n", index);
-		printBoard(current->boardState->boardState, k);
-        current = current->next;
-		index++;
-	}
-    printf("\n");
-}
-
-// Function to print Hash Table for debugging purpose. Remove later.
-void printHashTable(HashTable* hashTable, int k)
-{
-    for (int i = 0; i < hashTable->size; i++) 
-    {
-        Node* current = hashTable->buckets[i];
-
-        if (current != NULL)
-        {
-            printf("Bucket %d:\n", i);
-            while (current != NULL) 
-            {
-                printBoard(current->boardState->boardState, k);
-                current = current->next;
-            }
-            printf("=========================\n");
-        }
-    }
 }
 
 // Function to compare two board states in order to only insert unique board state to hash table.
@@ -311,7 +261,6 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 				
 				if (isGoalState(newBoardState, goalState, k))
 				{
-					//printf("=====================Goal State reached!====================\n\n");
 					return newBoardState;
 				}
 				
@@ -321,8 +270,6 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 			}
         }
     }
-	// printf("Queue after getting its adjacent:\n");
-	// printQueue(queue, k);
 
 	return NULL;
 }
@@ -358,9 +305,6 @@ bool isSolvable(int boardState[], int k)
         }
     }
 
-	// printf("Row: %d\n", row);
-	// printf("Inversion count: %d\n\n", inversionCount);
-
 	if (row % 2 == 1)		// If grid is odd
 	{
 		return (inversionCount % 2 == 0); 
@@ -378,6 +322,7 @@ bool isSolvable(int boardState[], int k)
 	}
 }
 
+// main() function.
 int main(int argc, char **argv)
 {
 	FILE *fp_in,*fp_out;
@@ -403,9 +348,9 @@ int main(int argc, char **argv)
 	// Read the input file and add to the initial board
 	////////////////////////////////////////////////////
 
-	getline(&line,&lineBuffSize,fp_in);		// ignore the first line in file, which is a comment
-	fscanf(fp_in,"%d\n",&k);				// read size of the board
-	getline(&line,&lineBuffSize,fp_in);		// ignore the second line in file, which is a comment
+	getline(&line, &lineBuffSize, fp_in);		// ignore the first line in file, which is a comment
+	fscanf(fp_in, "%d\n", &k);				// read size of the board
+	getline(&line, &lineBuffSize, fp_in);		// ignore the second line in file, which is a comment
 
 	int initial_board[k*k];					// get kxk memory to hold the initial board
 
@@ -414,9 +359,6 @@ int main(int argc, char **argv)
 		fscanf(fp_in, "%d ", &initial_board[i]);
 	}
 	fclose(fp_in);
-
-	// printf("Initial Board:\n\n");
-	// printBoard(initial_board, k); // Remove later
 
     // Check if this puzzle is solvable or not
     if (!isSolvable(initial_board, k))
@@ -436,8 +378,22 @@ int main(int argc, char **argv)
 
 	// Get the goal state.
 	int* goalState = getGoalState(initial_board, k);
-	// printf("Goal State:\n\n");
-	// printBoard(goalState, k); // Remove later
+
+	// The initial board state
+	BoardState* initialBoardState = createBoardState(initial_board, k);
+
+	if (isGoalState(initialBoardState, goalState, k))
+	{
+		fprintf(fp_out, "#moves\n");
+
+		fclose(fp_out);
+		free(line);
+		free(goalState);
+		freeBoardStateStruct(initialBoardState);
+
+		return 0;
+	}
+	
 
 	// Initialize Queue
 	Queue* queue = initializeQueue();
@@ -446,25 +402,18 @@ int main(int argc, char **argv)
 	HashTable* hashTable = initializeHashTable();
 	
 	// Insert the initial board to queue and hash table.
-	BoardState* initialBoardState = createBoardState(initial_board, k);
 	enqueue(queue, initialBoardState);
 	insertToHashTable(hashTable, initialBoardState, k);
 
 	// Start the BFS.
 	BoardState* solutionBoardState = BFSTraversal(queue, hashTable, goalState, k);
 
-	// Printing for debugging. Remove later.
-	// printQueue(queue, k);
-	// printHashTable(hashTable, k);
-
-	// printf("Child to Parent Heirarchy\n");
 	int numberOfMoves = 0;
 	int moves[100];
 	int index = 0;
 
     while (solutionBoardState != NULL)
     {
-		// printBoard(solutionBoardState->boardState, k);
 		int emptyTileIndex = findEmptyTile(solutionBoardState->boardState, k);
 
         solutionBoardState = solutionBoardState->parent;
@@ -477,13 +426,7 @@ int main(int argc, char **argv)
 		numberOfMoves++;
     }
 
-	// printf("Number of moves: %d\n", numberOfMoves - 1);
-	// printf("Moves: ");
-	// for (int i = numberOfMoves - 2; i >= 0; i--)
-	// {
-	// 	printf("%d ", moves[i]);
-	// }
-
+	// Write the moves to output file.
 	fprintf(fp_out, "#moves\n");
 	for(int i = numberOfMoves - 2; i >= 0; i--)
 	{
