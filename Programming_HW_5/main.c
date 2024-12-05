@@ -7,6 +7,7 @@
 typedef struct BoardState
 {
     int* boardState;
+	int emptyTileIndex;
     struct BoardState* parent;
 } BoardState;
 
@@ -44,11 +45,12 @@ unsigned long hashFunction(BoardState *boardState, int k, int size)
 }
 
 // Function to create boardState in struct.
-BoardState* createBoardState(int* boardState, int k)
+BoardState* createBoardState(int* boardState, int emptyTileIndex, int k)
 {
 	BoardState* newBoardState = malloc(sizeof(BoardState));
 	newBoardState->boardState = malloc(sizeof(int) * (k*k));
 	memcpy(newBoardState->boardState, boardState, sizeof(int) * k*k);
+	newBoardState->emptyTileIndex = emptyTileIndex;
 	newBoardState->parent = NULL;
 
 	return newBoardState;	
@@ -129,7 +131,7 @@ bool isUniqueBoard(HashTable* hashTable, BoardState* boardState, int k)
 HashTable* initializeHashTable()
 {
 	HashTable* hashTable = malloc(sizeof(HashTable));
-	hashTable->size = 1009;
+	hashTable->size = 20071;
 	hashTable->buckets = malloc(sizeof(Node*) * hashTable->size);
 
 	for (int i = 0; i < hashTable->size; i++)
@@ -209,7 +211,7 @@ bool isGoalState(BoardState* currentBoardState, int* goalState, int k)
 // Function to enqueue the adjacent board states from the current position of empty tile. Also checks for goal state (Need to make it readable) .
 BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* queue, HashTable* hashTable, int* goalState)
 {
-	int emptyTileIndex = findEmptyTile(currentBoardState->boardState, k);
+	int emptyTileIndex = currentBoardState->emptyTileIndex;
 	int row = emptyTileIndex / k;
 	int column = emptyTileIndex % k;
 
@@ -233,7 +235,7 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 
 			if (isUniqueBoard(hashTable, currentBoardState, k))
 			{
-				BoardState* newBoardState = createBoardState(currentBoardState->boardState, k);
+				BoardState* newBoardState = createBoardState(currentBoardState->boardState, newRow * k + newCol, k);
 				newBoardState->parent = currentBoardState; // Set the parent to track the path
 				enqueue(queue, newBoardState); // Enqueue the new state
 				insertToHashTable(hashTable, newBoardState, k);
@@ -360,7 +362,8 @@ int main(int argc, char **argv)
 	getGoalState(goalState, k);
 
 	// The initial board state
-	BoardState* initialBoardState = createBoardState(initial_board, k);
+	int emptyTileIndex = findEmptyTile(initial_board, k);
+	BoardState* initialBoardState = createBoardState(initial_board, emptyTileIndex, k);
 
 	if (isGoalState(initialBoardState, goalState, k))
 	{
