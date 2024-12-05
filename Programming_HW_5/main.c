@@ -175,9 +175,8 @@ void swap(int* a, int* b)
 }
 
 // Function to find the goal state with the help of quicksort.
-int* getGoalState(int boardState[], int k)
+void getGoalState(int goalState[], int k)
 {
-	int* goalState = malloc(sizeof(int) * (k*k));
 	int index = 0;
 
 	for (int i = 0; i < k*k - 1; i++)
@@ -186,8 +185,6 @@ int* getGoalState(int boardState[], int k)
 	}
 
 	goalState[k*k - 1] = 0;
-
-	return goalState;
 }
 
 // Function to free the BoardState Struct.
@@ -231,26 +228,25 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
         // Check if the move is within bounds
         if (newRow >= 0 && newRow < k && newCol >= 0 && newCol < k) 
 		{
-			BoardState* newBoardState = createBoardState(currentBoardState->boardState, k);
-
             // Swap the empty tile with the new position
-            swap(&(newBoardState->boardState[emptyTileIndex]), &(newBoardState->boardState[newRow * k + newCol]));
+            swap(&(currentBoardState->boardState[emptyTileIndex]), &(currentBoardState->boardState[newRow * k + newCol]));
 
-			if (isUniqueBoard(hashTable, newBoardState, k))
+			if (isUniqueBoard(hashTable, currentBoardState, k))
 			{
+				BoardState* newBoardState = createBoardState(currentBoardState->boardState, k);
 				newBoardState->parent = currentBoardState; // Set the parent to track the path
 				enqueue(queue, newBoardState); // Enqueue the new state
 				insertToHashTable(hashTable, newBoardState, k);
 				
 				if (isGoalState(newBoardState, goalState, k))
 				{
+					// Restore the original state.
+					swap(&currentBoardState->boardState[emptyTileIndex], &currentBoardState->boardState[newRow * k + newCol]);
 					return newBoardState;
 				}
-				
-			} else
-			{
-				freeBoardStateStruct(newBoardState);
 			}
+			// Restore the original state.
+			swap(&currentBoardState->boardState[emptyTileIndex], &currentBoardState->boardState[newRow * k + newCol]);
         }
     }
 
@@ -360,7 +356,8 @@ int main(int argc, char **argv)
 	//////////////////////////////////
 
 	// Get the goal state.
-	int* goalState = getGoalState(initial_board, k);
+	int goalState[k*k];
+	getGoalState(goalState, k);
 
 	// The initial board state
 	BoardState* initialBoardState = createBoardState(initial_board, k);
@@ -371,7 +368,6 @@ int main(int argc, char **argv)
 
 		fclose(fp_out);
 		free(line);
-		free(goalState);
 		freeBoardStateStruct(initialBoardState);
 
 		return 0;
@@ -423,7 +419,6 @@ int main(int argc, char **argv)
 	//////////////////////////////////
 
 	free(line);
-	free(goalState);
 
     // Free all elements in the hash table including boardstates.
     for (int i = 0; i < hashTable->size; i++) 
