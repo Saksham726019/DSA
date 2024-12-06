@@ -142,7 +142,7 @@ HashTable* initializeHashTable()
 	return hashTable;	
 }
 
-// Function to insert the unique board state to the hash table.
+// Function to insert the board state to the hash table.
 void insertToHashTable(HashTable* hashTable, BoardState* boardState, int k)
 {
 	int index = hashFunction(boardState, k, hashTable->size);
@@ -176,7 +176,7 @@ void swap(int* a, int* b)
     *b = temp;
 }
 
-// Function to find the goal state with the help of quicksort.
+// Function to find the goal state.
 void getGoalState(int goalState[], int k)
 {
 	int index = 0;
@@ -215,11 +215,13 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
 	int row = emptyTileIndex / k;
 	int column = emptyTileIndex % k;
 
-	int directions[4][2] = {
-		{-1, 0},
-		{1, 0},
-		{0, -1},
-		{0, 1}
+	// These are the directions that the empty tile can move at most.
+	int directions[4][2] = 
+	{
+		{-1, 0},	// Up
+		{1, 0},		// Down
+		{0, -1},	// Left
+		{0, 1}		// Right
 	};
 
 	for (int i = 0; i < 4; i++) 
@@ -227,17 +229,18 @@ BoardState* getAdjacentBoardStates(BoardState* currentBoardState, int k, Queue* 
         int newRow = row + directions[i][0];
         int newCol = column + directions[i][1];
 
-        // Check if the move is within bounds
+        // Check if the move doesn't cross the board boundary.
         if (newRow >= 0 && newRow < k && newCol >= 0 && newCol < k) 
 		{
-            // Swap the empty tile with the new position
+            // Swap the empty tile with the new position.
             swap(&(currentBoardState->boardState[emptyTileIndex]), &(currentBoardState->boardState[newRow * k + newCol]));
 
+			// Check if the board already exists in the hash table. If not, create a new state and add to Queue and Hash Table.
 			if (isUniqueBoard(hashTable, currentBoardState, k))
 			{
 				BoardState* newBoardState = createBoardState(currentBoardState->boardState, newRow * k + newCol, k);
-				newBoardState->parent = currentBoardState; // Set the parent to track the path
-				enqueue(queue, newBoardState); // Enqueue the new state
+				newBoardState->parent = currentBoardState; // Set the parent to track the path.
+				enqueue(queue, newBoardState); // Enqueue the new state.
 				insertToHashTable(hashTable, newBoardState, k);
 				
 				if (isGoalState(newBoardState, goalState, k))
