@@ -1,4 +1,0 @@
-#k
-3
-#initial state
-1 2 8 4 5 0 7 6 3
